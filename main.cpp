@@ -29,7 +29,13 @@ int main()
                 window.close();
             if (const auto* textEvent = event->getIf<sf::Event::TextEntered>())
             {
-                gapBuffer.insert(textEvent->unicode);
+                if (textEvent->unicode == 8) {
+                    gapBuffer.backspace();
+                }
+                else {
+                    gapBuffer.insert(static_cast<char>(textEvent->unicode));
+                }
+
             }
 
         }
