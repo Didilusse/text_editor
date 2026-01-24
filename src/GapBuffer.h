@@ -23,6 +23,8 @@ public:
     void backspace();
     char getChar(size_t i) const;
     std::string getString() const;
+    void moveLeft();
+    void moveRight();
 };
 
 

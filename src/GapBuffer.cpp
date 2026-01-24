@@ -63,3 +63,21 @@ std::string GapBuffer::getString() const {
     }
     return word;
 }
+
+void GapBuffer::moveLeft() {
+    if (getGapStart() == 0) {
+        return;
+    }
+    buffer[getGapEnd() - 1] = buffer[getGapStart() - 1];
+    setGapStart(getGapStart() - 1);
+    setGapEnd(getGapEnd() - 1);
+}
+
+void GapBuffer::moveRight() {
+    if (getGapEnd() == buffer.size()) {
+        return;
+    }
+    buffer[getGapStart()] = buffer[getGapEnd()];
+    setGapStart(getGapStart() + 1);
+    setGapEnd(getGapEnd() + 1);
+}
