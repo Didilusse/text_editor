@@ -56,6 +56,13 @@ build CMakeFiles/text_editor.dir/main.cpp.o: CXX_COMPILER__text_editor_unscanned
   OBJECT_DIR = CMakeFiles/text_editor.dir
   OBJECT_FILE_DIR = CMakeFiles/text_editor.dir
 
+build CMakeFiles/text_editor.dir/src/GapBuffer.cpp.o: CXX_COMPILER__text_editor_unscanned_Debug /Users/adil/Developer/C++/text-editor/src/GapBuffer.cpp || cmake_object_order_depends_target_text_editor
+  DEP_FILE = CMakeFiles/text_editor.dir/src/GapBuffer.cpp.o.d
+  FLAGS = -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -fcolor-diagnostics
+  INCLUDES = -isystem /opt/homebrew/include
+  OBJECT_DIR = CMakeFiles/text_editor.dir
+  OBJECT_FILE_DIR = CMakeFiles/text_editor.dir/src
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target text_editor
@@ -64,7 +71,7 @@ build CMakeFiles/text_editor.dir/main.cpp.o: CXX_COMPILER__text_editor_unscanned
 #############################################
 # Link the executable text_editor
 
-build text_editor: CXX_EXECUTABLE_LINKER__text_editor_Debug CMakeFiles/text_editor.dir/main.cpp.o | /opt/homebrew/lib/libsfml-graphics.3.0.2.dylib /opt/homebrew/lib/libsfml-window.3.0.2.dylib /opt/homebrew/lib/libsfml-system.3.0.2.dylib
+build text_editor: CXX_EXECUTABLE_LINKER__text_editor_Debug CMakeFiles/text_editor.dir/main.cpp.o CMakeFiles/text_editor.dir/src/GapBuffer.cpp.o | /opt/homebrew/lib/libsfml-graphics.3.0.2.dylib /opt/homebrew/lib/libsfml-window.3.0.2.dylib /opt/homebrew/lib/libsfml-system.3.0.2.dylib
   FLAGS = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk
   LINK_LIBRARIES = -Wl,-rpath,/opt/homebrew/lib  /opt/homebrew/lib/libsfml-graphics.3.0.2.dylib  /opt/homebrew/lib/libsfml-window.3.0.2.dylib  /opt/homebrew/lib/libsfml-system.3.0.2.dylib
   OBJECT_DIR = CMakeFiles/text_editor.dir

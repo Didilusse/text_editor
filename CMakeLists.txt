@@ -5,7 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(SFML 3 REQUIRED COMPONENTS Graphics Window System)
 
-add_executable(text_editor main.cpp)
+add_executable(text_editor main.cpp
+        src/GapBuffer.cpp
+        src/GapBuffer.h)
 
 target_link_libraries(text_editor
         PRIVATE
