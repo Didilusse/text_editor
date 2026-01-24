@@ -9,6 +9,8 @@ int main()
         return 1;
     }
     sf::Text text(font);
+    sf::RectangleShape cursor(sf::Vector2f(2, 24));
+
     GapBuffer gapBuffer;
     // set the string to display
     text.setString("Hello world!");
@@ -21,6 +23,8 @@ int main()
 
     // set the text style
     text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+
+    int cursorPosX, cursorPosY;
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -49,11 +53,15 @@ int main()
             }
 
         }
+        cursorPosX = text.findCharacterPos(gapBuffer.getGapStart()).x;
+        cursorPosY = text.findCharacterPos(gapBuffer.getGapStart()).y;
 
+        cursor.setPosition(sf::Vector2f(cursorPosX, cursorPosY));
 
         window.clear(sf::Color::Black);
         //draw stuff here
         text.setString(gapBuffer.getString());
+        window.draw(cursor);
         window.draw(text);
 
 
