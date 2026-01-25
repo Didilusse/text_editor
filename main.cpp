@@ -2,13 +2,12 @@
 #include "src/GapBuffer.h"
 #include <fstream>
 #include <iostream>
+#include "libs/nativefiledialog/src/include/nfd.h"
 
-int main()
-{
+int main() {
     sf::RenderWindow window(sf::VideoMode({600, 600}), "Text Editor");
     sf::Font font;
-    if (!font.openFromFile("fonts/Roboto.ttf"))
-    {
+    if (!font.openFromFile("fonts/Roboto.ttf")) {
         return 1;
     }
     sf::Text text(font);
@@ -48,32 +47,25 @@ int main()
 
     int cursorPosX = -1, cursorPosY = -1;
     int mousePosX = -1, mousePosY = -1;
-    while (window.isOpen())
-    {
-        while (const std::optional event = window.pollEvent())
-        {
+    while (window.isOpen()) {
+        while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>())
                 window.close();
             //Check for entered text
-            if (const auto* textEvent = event->getIf<sf::Event::TextEntered>())
-            {
+            if (const auto *textEvent = event->getIf<sf::Event::TextEntered>()) {
                 if (textEvent->unicode == 8) {
                     //backspace
                     gapBuffer.backspace();
-                }
-                else if (textEvent->unicode == 13) {
+                } else if (textEvent->unicode == 13) {
                     //enter key
                     gapBuffer.insert('\n');
-                }
-                else {
+                } else {
                     gapBuffer.insert(static_cast<char>(textEvent->unicode));
                 }
-
             }
 
             //Check for key event
-            if (const auto* keyEvent = event->getIf<sf::Event::KeyPressed>())
-            {
+            if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
                 if (keyEvent->code == sf::Keyboard::Key::Left) {
                     gapBuffer.moveLeft();
                 }
@@ -104,8 +96,7 @@ int main()
                         gapBuffer.moveTo(bestIndex);
                     }
                 }
-                if (keyEvent->code == sf::Keyboard::Key::Down)
-                {
+                if (keyEvent->code == sf::Keyboard::Key::Down) {
                     int currentY = text.findCharacterPos(gapBuffer.getGapStart()).y;
                     int currentX = text.findCharacterPos(gapBuffer.getGapStart()).x;
 
@@ -131,53 +122,84 @@ int main()
                 }
             }
 
-            if (const auto* mouseEvent = event->getIf<sf::Event::MouseButtonPressed>())
-            {
+            if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
                     mousePosX = mouseEvent->position.x;
                     mousePosY = mouseEvent->position.y;
                 }
             }
-
         }
 
         if (mousePosX != -1 && mousePosY != -1) {
             //check for button presses
             if (saveBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
-                std::ofstream outputFile("test.txt");
+                nfdchar_t *outPath = nullptr;
+                nfdresult_t result = NFD_SaveDialog(nullptr, nullptr, &outPath);
 
-                if (outputFile.is_open()) {
-                    // Write data to the file using the insertion operator
-                    outputFile << gapBuffer.getString() << std::endl;
-                    outputFile.close();
-
-                } else {
-                    std::cerr << "Error opening the file." << std::endl;
-                }
-            }
-            if (loadBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
-                std::ifstream inputFile("test.txt");
-                char ch;
-                if (inputFile.is_open()) {
-                    gapBuffer.clear();
-                    while (inputFile.get(ch)) {
-                        gapBuffer.insert(ch);
+                if (result == NFD_OKAY) {
+                    std::string path(outPath);
+                    if (path.size() < 4 || path.substr(path.size() - 4) != ".txt") {
+                        path += ".txt";
                     }
-                    inputFile.close();
+                    std::ofstream outputFile(path);
+
+                    if (outputFile.is_open()) {
+                        // Write data to the file using the insertion operator
+                        outputFile << gapBuffer.getString() << std::endl;
+                        outputFile.close();
+                    } else {
+                        std::cerr << "Error opening the file." << std::endl;
+                    }
+                    puts(outPath);
+                } else if (result == NFD_CANCEL) {
+                    puts("User pressed cancel.");
+                } else {
+                    printf("Error: %s\n", NFD_GetError());
                 }
-                else {
-                    std::cerr << "Error opening the file." << std::endl;
+
+
+                free(outPath);
+                mousePosX = -1;
+                mousePosY = -1;
+            }
+
+
+            if (loadBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
+                nfdchar_t *outPath = nullptr;
+                nfdresult_t result = NFD_OpenDialog(nullptr, nullptr, &outPath);
+
+                if (result == NFD_OKAY) {
+                    std::ifstream inputFile(outPath);
+                    char ch;
+                    if (inputFile.is_open()) {
+                        gapBuffer.clear();
+                        while (inputFile.get(ch)) {
+                            gapBuffer.insert(ch);
+                        }
+                        inputFile.close();
+                    } else {
+                        std::cerr << "Error opening the file." << std::endl;
+                    }
+                    puts(outPath);
+                } else if (result == NFD_CANCEL) {
+                    puts("User pressed cancel.");
+                } else {
+                    printf("Error: %s\n", NFD_GetError());
                 }
+
+
+                free(outPath);
+                mousePosX = -1;
+                mousePosY = -1;
             }
 
             for (int i = 0; i <= text.getString().getSize(); i++) {
                 //get pos for every character
                 int y = text.findCharacterPos(i).y;
-                if (mousePosY >= y && mousePosY < y + text.getCharacterSize()){
+                if (mousePosY >= y && mousePosY < y + text.getCharacterSize()) {
                     float x1 = text.findCharacterPos(i).x;
                     float x2 = text.findCharacterPos(i + 1).x;
-                    if (mousePosX >= x1 && mousePosX < x2)
-                    {
+                    if (mousePosX >= x1 && mousePosX < x2) {
                         gapBuffer.moveTo(i);
                         //reset mouse pos
                         mousePosX = -1;

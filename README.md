@@ -35,7 +35,7 @@ make
 ```
 
 ## Future Features
-- Ability to save and load files
+- Ability to save and load files (WIP)
 - Ability to upload and change fonts
 - Different themes
 - More GUI elements
