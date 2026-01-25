@@ -19,8 +19,29 @@ int main()
     // set the color
     text.setFillColor(sf::Color::White);
 
-    // set the text style
-    //text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+    sf::RectangleShape saveBtn(sf::Vector2f(80, 30));
+    saveBtn.setFillColor(sf::Color(50, 50, 50));
+    saveBtn.setPosition(sf::Vector2f(10, 10));
+
+    sf::Text saveText(font);
+    saveText.setString("Save");
+    saveText.setCharacterSize(18);
+    saveText.setFillColor(sf::Color::White);
+    saveText.setPosition(sf::Vector2f(30, 12));
+
+    // Load Button
+    sf::RectangleShape loadBtn(sf::Vector2f(80, 30));
+    loadBtn.setFillColor(sf::Color(50, 50, 50));
+    loadBtn.setPosition(sf::Vector2f(100, 10));
+
+    sf::Text loadText(font);
+    loadText.setString("Load");
+    loadText.setCharacterSize(18);
+    loadText.setFillColor(sf::Color::White);
+    loadText.setPosition(sf::Vector2f(120, 12));
+
+    text.setPosition(sf::Vector2f(0, 50));
+
 
     int cursorPosX = -1, cursorPosY = -1;
     int mousePosX = -1, mousePosY = -1;
@@ -118,6 +139,14 @@ int main()
         }
 
         if (mousePosX != -1 && mousePosY != -1) {
+            //check for button presses
+            if (saveBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
+
+            }
+            if (loadBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
+
+            }
+
             for (int i = 0; i <= text.getString().getSize(); i++) {
                 //get pos for every character
                 int y = text.findCharacterPos(i).y;
@@ -145,6 +174,10 @@ int main()
 
         window.clear(sf::Color::Black);
         //draw stuff here
+        window.draw(saveBtn);
+        window.draw(saveText);
+        window.draw(loadBtn);
+        window.draw(loadText);
         text.setString(gapBuffer.getString());
         window.draw(cursor);
         window.draw(text);
