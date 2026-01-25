@@ -48,9 +48,19 @@ int main() {
     int cursorPosX = -1, cursorPosY = -1;
     int mousePosX = -1, mousePosY = -1;
     while (window.isOpen()) {
+
+
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>())
                 window.close();
+
+            if (const auto* resizeEvent = event->getIf<sf::Event::Resized>()) {
+                unsigned int newWidth = resizeEvent->size.x;
+                unsigned int newHeight = resizeEvent->size.y;
+
+                sf::FloatRect visibleArea(sf::Vector2f(0,0), sf::Vector2f(newWidth, newHeight));
+                window.setView(sf::View(visibleArea));
+            }
             //Check for entered text
             if (const auto *textEvent = event->getIf<sf::Event::TextEntered>()) {
                 if (textEvent->unicode == 8) {
