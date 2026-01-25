@@ -82,11 +82,6 @@ void GapBuffer::moveRight() {
     setGapEnd(getGapEnd() + 1);
 }
 
-void GapBuffer::moveUp() {
-}
-
-void GapBuffer::moveDown() {
-}
 void GapBuffer::moveTo(size_t i) {
     if (getGapStart() == i) {
         return;

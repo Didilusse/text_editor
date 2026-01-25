@@ -25,8 +25,6 @@ public:
     std::string getString() const;
     void moveLeft();
     void moveRight();
-    void moveUp();
-    void moveDown();
     void moveTo(size_t i);
 };
 
