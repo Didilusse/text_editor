@@ -17,6 +17,29 @@ I made this project to learn more about text rendering, cursor movement, and inp
 - **Arrow keys** to move the cursor
 - **Left mouse click** to move the cursor to a position in the text
 
+## How It Works 
+
+This program uses a **gap buffer** to make text editing efficient.
+
+### Gap Buffer
+All text lives in a single buffer with a gap at the cursor position.
+- Typing inserts characters directly into the gap
+- Deleting text expands the gap
+- Moving the cursor shifts the gap instead of copying text
+
+This keeps common edits fast, even as the file grows.
+
+### Cursor & Rendering
+- Cursor movement is tracked logically, separate from rendering
+- Vertical movement preserves a preferred X position across lines
+- Each frame, the gap buffer is converted to a string and rendered with SFML
+- The cursor is drawn based on glyph positions in the rendered text
+
+### Input
+- Keyboard input edits the gap buffer
+- Mouse clicks map screen positions to text indices
+- Loading a file replaces the buffer and resets cursor state
+
 ## Requirements
 - C++17 or newer
 - SFML 3
