@@ -102,3 +102,9 @@ void GapBuffer::moveTo(size_t i) {
 
 }
 
+void GapBuffer::clear() {
+    buffer.resize(10);
+    setGapStart(0);
+    setGapEnd(10);
+}
+

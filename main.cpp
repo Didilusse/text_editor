@@ -1,5 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include "src/GapBuffer.h"
+#include <fstream>
+#include <iostream>
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode({600, 600}), "Text Editor");
@@ -141,10 +144,30 @@ int main()
         if (mousePosX != -1 && mousePosY != -1) {
             //check for button presses
             if (saveBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
+                std::ofstream outputFile("test.txt");
 
+                if (outputFile.is_open()) {
+                    // Write data to the file using the insertion operator
+                    outputFile << gapBuffer.getString() << std::endl;
+                    outputFile.close();
+
+                } else {
+                    std::cerr << "Error opening the file." << std::endl;
+                }
             }
             if (loadBtn.getGlobalBounds().contains(sf::Vector2f(mousePosX, mousePosY))) {
-
+                std::ifstream inputFile("test.txt");
+                char ch;
+                if (inputFile.is_open()) {
+                    gapBuffer.clear();
+                    while (inputFile.get(ch)) {
+                        gapBuffer.insert(ch);
+                    }
+                    inputFile.close();
+                }
+                else {
+                    std::cerr << "Error opening the file." << std::endl;
+                }
             }
 
             for (int i = 0; i <= text.getString().getSize(); i++) {

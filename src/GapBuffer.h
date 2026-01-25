@@ -26,6 +26,7 @@ public:
     void moveLeft();
     void moveRight();
     void moveTo(size_t i);
+    void clear();
 };
 
 
