@@ -12,17 +12,15 @@ int main()
     sf::RectangleShape cursor(sf::Vector2f(2, 24));
 
     GapBuffer gapBuffer;
-    // set the string to display
-    text.setString("Hello world!");
 
     // set the character size
     text.setCharacterSize(24);
 
     // set the color
-    text.setFillColor(sf::Color::Red);
+    text.setFillColor(sf::Color::White);
 
     // set the text style
-    text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+    //text.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
     int cursorPosX = -1, cursorPosY = -1;
     int mousePosX = -1, mousePosY = -1;
@@ -64,25 +62,22 @@ int main()
                     //calculate new Y direction
                     int targetY = currentY - font.getLineSpacing(text.getCharacterSize());
 
-                    int endOfLineIndex = -1;
+                    int bestIndex = -1;
+                    float bestDistance = std::numeric_limits<float>::max();
 
-                    bool found = false;
                     for (int i = 0; i < text.getString().getSize(); i++) {
                         int y = text.findCharacterPos(i).y;
-                        if (y <= targetY && targetY < y + text.getCharacterSize()){
-                            endOfLineIndex = i;
-                            float x1 = text.findCharacterPos(i).x;
-                            float x2 = text.findCharacterPos(i + 1).x;
-                            if (currentX >= x1 && currentX < x2)
-                            {
-                                found = true;
-                                gapBuffer.moveTo(i);
-                                break;
+                        if (y == targetY) {
+                            float x = text.findCharacterPos(i).x;
+                            float dist = std::abs(x - currentX);
+                            if (dist < bestDistance) {
+                                bestDistance = dist;
+                                bestIndex = i;
                             }
                         }
                     }
-                    if (!found && endOfLineIndex != -1) {
-                        gapBuffer.moveTo(endOfLineIndex);
+                    if (bestIndex != -1) {
+                        gapBuffer.moveTo(bestIndex);
                     }
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Down)
@@ -92,32 +87,22 @@ int main()
 
                     int targetY = currentY + font.getLineSpacing(text.getCharacterSize());
 
-                    int endOfLineIndex = -1;
-                    bool found = false;
+                    int bestIndex = -1;
+                    float bestDistance = std::numeric_limits<float>::max();
 
-                    for (int i = 0; i < text.getString().getSize(); i++)
-                    {
+                    for (int i = 0; i < text.getString().getSize(); i++) {
                         int y = text.findCharacterPos(i).y;
-
-                        if (y <= targetY && targetY < y + text.getCharacterSize())
-                        {
-                            endOfLineIndex = i;
-
-                            float x1 = text.findCharacterPos(i).x;
-                            float x2 = text.findCharacterPos(i + 1).x;
-
-                            if (currentX >= x1 && currentX < x2)
-                            {
-                                gapBuffer.moveTo(i);
-                                found = true;
-                                break;
+                        if (y == targetY) {
+                            float x = text.findCharacterPos(i).x;
+                            float dist = std::abs(x - currentX);
+                            if (dist < bestDistance) {
+                                bestDistance = dist;
+                                bestIndex = i;
                             }
                         }
                     }
-
-                    if (!found && endOfLineIndex != -1)
-                    {
-                        gapBuffer.moveTo(endOfLineIndex);
+                    if (bestIndex != -1) {
+                        gapBuffer.moveTo(bestIndex);
                     }
                 }
             }
