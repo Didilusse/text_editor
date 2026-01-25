@@ -25,7 +25,7 @@ int main()
     text.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
     int cursorPosX = -1, cursorPosY = -1;
-    int mousePosX, mousePosY;
+    int mousePosX = -1, mousePosY = -1;
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -62,7 +62,7 @@ int main()
                     int currentY = text.findCharacterPos(gapBuffer.getGapStart()).y;
                     int currentX = text.findCharacterPos(gapBuffer.getGapStart()).x;
                     //calculate new Y direction
-                    int targetY = cursorPosY - text.getCharacterSize();
+                    int targetY = currentY - font.getLineSpacing(text.getCharacterSize());
 
                     int endOfLineIndex = -1;
 
@@ -85,8 +85,40 @@ int main()
                         gapBuffer.moveTo(endOfLineIndex);
                     }
                 }
-                if (keyEvent->code == sf::Keyboard::Key::Down) {
+                if (keyEvent->code == sf::Keyboard::Key::Down)
+                {
+                    int currentY = text.findCharacterPos(gapBuffer.getGapStart()).y;
+                    int currentX = text.findCharacterPos(gapBuffer.getGapStart()).x;
 
+                    int targetY = currentY + font.getLineSpacing(text.getCharacterSize());
+
+                    int endOfLineIndex = -1;
+                    bool found = false;
+
+                    for (int i = 0; i < text.getString().getSize(); i++)
+                    {
+                        int y = text.findCharacterPos(i).y;
+
+                        if (y <= targetY && targetY < y + text.getCharacterSize())
+                        {
+                            endOfLineIndex = i;
+
+                            float x1 = text.findCharacterPos(i).x;
+                            float x2 = text.findCharacterPos(i + 1).x;
+
+                            if (currentX >= x1 && currentX < x2)
+                            {
+                                gapBuffer.moveTo(i);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found && endOfLineIndex != -1)
+                    {
+                        gapBuffer.moveTo(endOfLineIndex);
+                    }
                 }
             }
 
@@ -101,7 +133,7 @@ int main()
         }
 
         if (mousePosX != -1 && mousePosY != -1) {
-            for (int i = 0; i < text.getString().getSize(); i++) {
+            for (int i = 0; i <= text.getString().getSize(); i++) {
                 //get pos for every character
                 int y = text.findCharacterPos(i).y;
                 if (mousePosY >= y && mousePosY < y + text.getCharacterSize()){
