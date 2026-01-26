@@ -2,7 +2,10 @@
 #include "src/GapBuffer.h"
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <sstream>
 #include "libs/nativefiledialog/src/include/nfd.h"
+
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({600, 600}), "Text Editor");
@@ -44,7 +47,7 @@ int main() {
 
     text.setPosition(sf::Vector2f(0, 50));
 
-
+    std::string displayString;
     int cursorPosX = -1, cursorPosY = -1;
     int mousePosX = -1, mousePosY = -1;
     while (window.isOpen()) {
@@ -70,7 +73,8 @@ int main() {
                     //enter key
                     gapBuffer.insert('\n');
                 } else {
-                    gapBuffer.insert(static_cast<char>(textEvent->unicode));
+                    char c = static_cast<char>(textEvent->unicode);
+                    gapBuffer.insert(c);
                 }
             }
 
@@ -220,12 +224,67 @@ int main() {
             }
         }
 
+        displayString.clear();
 
-        cursorPosX = text.findCharacterPos(gapBuffer.getGapStart()).x;
-        cursorPosY = text.findCharacterPos(gapBuffer.getGapStart()).y;
+        std::string raw = gapBuffer.getString();
+        std::string displayString = "";
+        std::string currentLine = "";
+        std::string wordBuffer = "";
+
+        float maxWidth = window.getSize().x - 10;
+        size_t rawCursorIndex = gapBuffer.getGapStart();
+        size_t displayCursorIndex = 0;
+        bool cursorFound = false;
+
+        for (size_t i = 0; i < raw.size(); i++) {
+            char c = raw[i];
 
 
-        cursor.setPosition(sf::Vector2f(cursorPosX, cursorPosY));
+            if (i == rawCursorIndex) {
+                displayCursorIndex = displayString.size() + currentLine.size() + wordBuffer.size();
+                cursorFound = true;
+            }
+
+            // handles return key
+            if (c == '\n') {
+                currentLine += wordBuffer;
+                displayString += currentLine + "\n";
+                currentLine = "";
+                wordBuffer = "";
+                continue;
+            }
+
+            wordBuffer += c;
+
+            // 3. Check for word boundaries (Space or End of String)
+            if (c == ' ' || i == raw.size() - 1) {
+                sf::Text temp = text;
+
+                temp.setString(currentLine + wordBuffer);
+
+                if (temp.getLocalBounds().size.x > maxWidth) {
+                    // too long, needs a new line
+                    displayString += currentLine + "\n";
+                    currentLine = "";
+                }
+
+                // add the word to the current line
+                currentLine += wordBuffer;
+                wordBuffer = "";
+            }
+        }
+
+
+        if (!cursorFound) {
+            displayCursorIndex = displayString.size() + currentLine.size() + wordBuffer.size();
+        }
+
+
+        displayString += currentLine + wordBuffer;
+
+
+        sf::Vector2f pos = text.findCharacterPos(displayCursorIndex);
+        cursor.setPosition(pos);
 
         window.clear(sf::Color::Black);
         //draw stuff here
@@ -233,7 +292,8 @@ int main() {
         window.draw(saveText);
         window.draw(loadBtn);
         window.draw(loadText);
-        text.setString(gapBuffer.getString());
+
+        text.setString(displayString);
         window.draw(cursor);
         window.draw(text);
 
