@@ -223,7 +223,16 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::Right) gapBuffer.moveRight();
                 if (keyEvent->code == sf::Keyboard::Key::Up) moveCursorVertical(gapBuffer, text, font, false);
                 if (keyEvent->code == sf::Keyboard::Key::Down) moveCursorVertical(gapBuffer, text, font, true);
-
+                if (keyEvent->code == sf::Keyboard::Key::V &&
+    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                    // paste
+                    std::string pasted = sf::Clipboard::getString();
+                    for (char c : pasted) {
+                        gapBuffer.insert(c);
+                    }
+                }
             }
 
             if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
