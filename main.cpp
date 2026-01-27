@@ -19,7 +19,12 @@ struct DisplayState {
     std::string content;
     size_t cursorIndex;
 };
-
+void updateCursorSize(sf::RectangleShape& cursor,
+                      const sf::Font& font,
+                      unsigned int charSize) {
+    float lineHeight = font.getLineSpacing(charSize);
+    cursor.setSize({2.f, lineHeight});
+}
 Button createButton(const sf::Font& font, const std::string& label, sf::Vector2f pos) {
     Button btn(font);
     btn.shape.setSize(sf::Vector2f(80, 30));
@@ -192,10 +197,15 @@ int main() {
     text.setPosition({0, 50});
 
     sf::RectangleShape cursor(sf::Vector2f(2, 24));
+    updateCursorSize(cursor, font, text.getCharacterSize());
     GapBuffer gapBuffer;
 
     Button saveBtn = createButton(font, "Save", {10, 10});
     Button loadBtn = createButton(font, "Load", {100, 10});
+    Button textSize = createButton(font, " ", {190, 10});
+    textSize.text.setCharacterSize(12);
+    textSize.text.setPosition(sf::Vector2f(195, 17));
+
 
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
@@ -245,7 +255,23 @@ int main() {
                     (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
-                    loadFromFile(gapBuffer);
+                        loadFromFile(gapBuffer);
+                    }
+                if (keyEvent->code == sf::Keyboard::Key::Equal &&
+                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                        text.setCharacterSize(text.getCharacterSize() + 1);
+                        updateCursorSize(cursor, font, text.getCharacterSize());
+                    }
+                if (keyEvent->code == sf::Keyboard::Key::Hyphen &&
+                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                        if (text.getCharacterSize() >= 6) {
+                            text.setCharacterSize(text.getCharacterSize() - 1);
+                            updateCursorSize(cursor, font, text.getCharacterSize());
+                        }
                     }
             }
 
@@ -258,9 +284,12 @@ int main() {
 
         DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
         text.setString(state.content);
-        cursor.setPosition(text.findCharacterPos(state.cursorIndex));
 
+        cursor.setPosition(text.findCharacterPos(state.cursorIndex));
+        textSize.text.setString("Font Size: " + std::to_string(text.getCharacterSize()));
         window.clear(sf::Color::Black);
+        window.draw(textSize.shape);
+        window.draw(textSize.text);
         window.draw(saveBtn.shape);
         window.draw(saveBtn.text);
         window.draw(loadBtn.shape);
