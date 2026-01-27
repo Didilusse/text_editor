@@ -182,7 +182,7 @@ void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& 
 }
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode({600, 600}), "Text Editor");
+    sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
     sf::Font font;
     if (!font.openFromFile("fonts/Roboto.ttf")) return 1;
 
@@ -223,16 +223,30 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::Right) gapBuffer.moveRight();
                 if (keyEvent->code == sf::Keyboard::Key::Up) moveCursorVertical(gapBuffer, text, font, false);
                 if (keyEvent->code == sf::Keyboard::Key::Down) moveCursorVertical(gapBuffer, text, font, true);
+                //Paste
                 if (keyEvent->code == sf::Keyboard::Key::V &&
-    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
-     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
-     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
-                    // paste
+                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
                     std::string pasted = sf::Clipboard::getString();
                     for (char c : pasted) {
                         gapBuffer.insert(c);
                     }
                 }
+                //Save
+                if (keyEvent->code == sf::Keyboard::Key::S &&
+                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                        saveToFile(gapBuffer);
+                    }
+                //Open file
+                if (keyEvent->code == sf::Keyboard::Key::O &&
+                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                    loadFromFile(gapBuffer);
+                    }
             }
 
             if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
