@@ -9,6 +9,7 @@ I made this project to learn more about text rendering, cursor movement, and inp
 - Keyboard navigation (Left, Right, Up, Down)
 - Mouse click to move the cursor
 - Vertical navigation that keeps the cursor aligned using a preferred X position
+- Ability to save and load files
 
 ## Controls
 - **Type** to insert text
@@ -16,6 +17,10 @@ I made this project to learn more about text rendering, cursor movement, and inp
 - **Enter** for a new line
 - **Arrow keys** to move the cursor
 - **Left mouse click** to move the cursor to a position in the text
+- **Control + O** to open a file
+- **Control + S** to save the file
+- **Control + =** to increase font size
+- **Control + -** to decrease font size
 
 ## How It Works 
 
@@ -58,7 +63,6 @@ make
 ```
 
 ## Future Features
-- Ability to save and load files (WIP)
 - Ability to upload and change fonts
 - Different themes
 - More GUI elements
