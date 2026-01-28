@@ -221,6 +221,10 @@ int main() {
     const float SCROLL_PADDING = 10.f;
 
     while (window.isOpen()) {
+        // Update display text BEFORE processing events so cursor movement has accurate positions
+        DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
+        text.setString(state.content);
+
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
@@ -261,14 +265,6 @@ int main() {
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Right) {
                     gapBuffer.moveRight();
-                    cursorMovedThisFrame = true;
-                }
-                if (keyEvent->code == sf::Keyboard::Key::Up) {
-                    moveCursorVertical(gapBuffer, text, font, false);
-                    cursorMovedThisFrame = true;
-                }
-                if (keyEvent->code == sf::Keyboard::Key::Down) {
-                    moveCursorVertical(gapBuffer, text, font, true);
                     cursorMovedThisFrame = true;
                 }
                 //Paste
@@ -330,15 +326,26 @@ int main() {
         }
 
 
-        DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
-        text.setString(state.content);
+        static sf::Clock verticalMoveClock;
+        const sf::Time repeatDelay = sf::milliseconds(20);
+
+        if (verticalMoveClock.getElapsedTime() > repeatDelay) {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
+                moveCursorVertical(gapBuffer, text, font, false);
+                cursorMovedThisFrame = true;
+                verticalMoveClock.restart();
+            } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
+                moveCursorVertical(gapBuffer, text, font, true);
+                cursorMovedThisFrame = true;
+                verticalMoveClock.restart();
+            }
+        }
 
         // Calculate bounds for clamping
         sf::FloatRect textBounds = text.getGlobalBounds();
-        float textHeight = textBounds.position.y + textBounds.size.y;  // Bottom of text
+        float textHeight = textBounds.position.y + textBounds.size.y;
         float windowHeight = static_cast<float>(window.getSize().y);
 
-        // Max scroll allows scrolling until the bottom of text hits bottom of screen
         float maxScroll = std::max(0.f, textHeight - windowHeight + SCROLL_PADDING);
 
 
@@ -346,7 +353,7 @@ int main() {
         sf::Vector2f cursorPos = cursor.getPosition();
         float cursorHeight = cursor.getSize().y;
 
-
+        // If the cursor moved, we force the screen to scroll to it
         if (cursorMovedThisFrame) {
             float topVisible = scrollOffsetY + TOP_MARGIN;
             float bottomVisible = scrollOffsetY + windowHeight - SCROLL_PADDING;
