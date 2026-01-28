@@ -1,3 +1,0 @@
-/Users/adil/Developer/C++/text-editor/cmake-build-debug/CMakeFiles/text_editor.dir
-/Users/adil/Developer/C++/text-editor/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/adil/Developer/C++/text-editor/cmake-build-debug/CMakeFiles/rebuild_cache.dir
