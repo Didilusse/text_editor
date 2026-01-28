@@ -159,26 +159,35 @@ DisplayState wrapText(const GapBuffer& buffer, sf::Text& textObj, float maxWidth
     return {displayString, displayCursorIndex};
 }
 
-void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& text, const Button& saveBtn, const Button& loadBtn) {
-    sf::Vector2f mPos(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& text,
+                      const Button& saveBtn, const Button& loadBtn,
+                      const sf::RenderWindow& window, const sf::View& textView) {
 
-    if (saveBtn.shape.getGlobalBounds().contains(mPos)) {
+    // Check Buttons (using Screen Coordinates / UI View)
+    sf::Vector2f uiPos(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
+    if (saveBtn.shape.getGlobalBounds().contains(uiPos)) {
         saveToFile(buffer);
         return;
     }
-
-    if (loadBtn.shape.getGlobalBounds().contains(mPos)) {
+    if (loadBtn.shape.getGlobalBounds().contains(uiPos)) {
         loadFromFile(buffer);
         return;
     }
+
+    // Check Text (using World Coordinates / Text View)
+    sf::Vector2f worldPos = window.mapPixelToCoords(mousePos, textView);
 
     for (size_t i = 0; i <= text.getString().getSize(); i++) {
         sf::Vector2f charPos = text.findCharacterPos(i);
         float charHeight = static_cast<float>(text.getCharacterSize());
 
-        if (mPos.y >= charPos.y && mPos.y < charPos.y + charHeight) {
-            float nextX = text.findCharacterPos(i + 1).x;
-            if (mPos.x >= charPos.x && mPos.x < nextX) {
+        // Use a wider hit-box for characters so clicks between letters work better
+        float charWidth = text.findCharacterPos(i+1).x - charPos.x;
+        if (charWidth <= 0) charWidth = 10; // Fallback for last char
+
+        if (worldPos.y >= charPos.y && worldPos.y < charPos.y + charHeight) {
+            if (worldPos.x >= charPos.x && worldPos.x < charPos.x + charWidth) {
                 buffer.moveTo(i);
                 break;
             }
@@ -188,13 +197,15 @@ void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& 
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
+    sf::View uiView = window.getDefaultView();
+    sf::View textView = window.getDefaultView();
     sf::Font font;
     if (!font.openFromFile("fonts/Roboto.ttf")) return 1;
-
+    const float TOP_MARGIN = 50.0f;
     sf::Text text(font);
     text.setCharacterSize(24);
     text.setFillColor(sf::Color::White);
-    text.setPosition({0, 50});
+    text.setPosition({0, TOP_MARGIN});
 
     sf::RectangleShape cursor(sf::Vector2f(2, 24));
     updateCursorSize(cursor, font, text.getCharacterSize());
@@ -205,7 +216,9 @@ int main() {
     Button textSize = createButton(font, " ", {190, 10});
     textSize.text.setCharacterSize(12);
     textSize.text.setPosition(sf::Vector2f(195, 17));
-
+    float scrollOffsetY = 0.f;
+    bool cursorMovedThisFrame = false;
+    const float SCROLL_PADDING = 10.f;
 
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
@@ -214,9 +227,21 @@ int main() {
             }
 
             if (const auto* resizeEvent = event->getIf<sf::Event::Resized>()) {
-                sf::FloatRect visibleArea({0, 0}, {static_cast<float>(resizeEvent->size.x), static_cast<float>(resizeEvent->size.y)});
-                window.setView(sf::View(visibleArea));
+                // Resize both views
+                sf::Vector2f newSize(static_cast<float>(resizeEvent->size.x), static_cast<float>(resizeEvent->size.y));
+                uiView.setSize(newSize);
+                uiView.setCenter(newSize / 2.f);
+
+                textView.setSize(newSize);
+                textView.setCenter(newSize / 2.f);  // Reset center on resize
             }
+
+            if (const auto* wheel = event->getIf<sf::Event::MouseWheelScrolled>()) {
+                const float scrollSpeed = 40.f;
+                scrollOffsetY -= wheel->delta * scrollSpeed;
+                cursorMovedThisFrame = false;
+            }
+
 
             if (const auto *textEvent = event->getIf<sf::Event::TextEntered>()) {
                 if (textEvent->unicode == 8) {
@@ -226,13 +251,26 @@ int main() {
                 } else {
                     gapBuffer.insert(static_cast<char>(textEvent->unicode));
                 }
+                cursorMovedThisFrame = true;
             }
 
             if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
-                if (keyEvent->code == sf::Keyboard::Key::Left) gapBuffer.moveLeft();
-                if (keyEvent->code == sf::Keyboard::Key::Right) gapBuffer.moveRight();
-                if (keyEvent->code == sf::Keyboard::Key::Up) moveCursorVertical(gapBuffer, text, font, false);
-                if (keyEvent->code == sf::Keyboard::Key::Down) moveCursorVertical(gapBuffer, text, font, true);
+                if (keyEvent->code == sf::Keyboard::Key::Left) {
+                    gapBuffer.moveLeft();
+                    cursorMovedThisFrame = true;
+                }
+                if (keyEvent->code == sf::Keyboard::Key::Right) {
+                    gapBuffer.moveRight();
+                    cursorMovedThisFrame = true;
+                }
+                if (keyEvent->code == sf::Keyboard::Key::Up) {
+                    moveCursorVertical(gapBuffer, text, font, false);
+                    cursorMovedThisFrame = true;
+                }
+                if (keyEvent->code == sf::Keyboard::Key::Down) {
+                    moveCursorVertical(gapBuffer, text, font, true);
+                    cursorMovedThisFrame = true;
+                }
                 //Paste
                 if (keyEvent->code == sf::Keyboard::Key::V &&
                     (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
@@ -242,6 +280,7 @@ int main() {
                     for (char c : pasted) {
                         gapBuffer.insert(c);
                     }
+                    cursorMovedThisFrame = true;
                 }
                 //Save
                 if (keyEvent->code == sf::Keyboard::Key::S &&
@@ -277,25 +316,80 @@ int main() {
 
             if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
-                    handleMouseClick(mouseEvent->position, gapBuffer, text, saveBtn, loadBtn);
+                    handleMouseClick(
+                        mouseEvent->position,
+                        gapBuffer,
+                        text,
+                        saveBtn,
+                        loadBtn,
+                        window,
+                        textView
+                    );
                 }
             }
         }
 
+
         DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
         text.setString(state.content);
 
+        // Calculate bounds for clamping
+        sf::FloatRect textBounds = text.getGlobalBounds();
+        float textHeight = textBounds.position.y + textBounds.size.y;  // Bottom of text
+        float windowHeight = static_cast<float>(window.getSize().y);
+
+        // Max scroll allows scrolling until the bottom of text hits bottom of screen
+        float maxScroll = std::max(0.f, textHeight - windowHeight + SCROLL_PADDING);
+
+
         cursor.setPosition(text.findCharacterPos(state.cursorIndex));
+        sf::Vector2f cursorPos = cursor.getPosition();
+        float cursorHeight = cursor.getSize().y;
+
+
+        if (cursorMovedThisFrame) {
+            float topVisible = scrollOffsetY + TOP_MARGIN;
+            float bottomVisible = scrollOffsetY + windowHeight - SCROLL_PADDING;
+
+            if (cursorPos.y < topVisible) {
+                scrollOffsetY = cursorPos.y - TOP_MARGIN;
+            } else if (cursorPos.y + cursorHeight > bottomVisible) {
+                scrollOffsetY = (cursorPos.y + cursorHeight) - windowHeight + SCROLL_PADDING;
+            }
+        }
+
+
+        scrollOffsetY = std::clamp(scrollOffsetY, 0.f, maxScroll);
+
         textSize.text.setString("Font Size: " + std::to_string(text.getCharacterSize()));
         window.clear(sf::Color::Black);
+
+        textView.setCenter(
+            sf::Vector2f(
+                static_cast<float>(window.getSize().x) / 2.f,
+                (static_cast<float>(window.getSize().y) / 2.f) + scrollOffsetY
+            )
+        );
+        window.setView(textView);
+
+        window.draw(text);
+        window.draw(cursor);
+
+        window.setView(uiView);
+
+        sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
+        headerBg.setFillColor(sf::Color(30, 30, 30));
+        window.draw(headerBg);
+
         window.draw(textSize.shape);
         window.draw(textSize.text);
         window.draw(saveBtn.shape);
         window.draw(saveBtn.text);
         window.draw(loadBtn.shape);
         window.draw(loadBtn.text);
-        window.draw(text);
-        window.draw(cursor);
+
         window.display();
+
+        cursorMovedThisFrame = false;
     }
 }
