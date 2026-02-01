@@ -220,6 +220,9 @@ int main() {
     bool cursorMovedThisFrame = false;
     const float SCROLL_PADDING = 10.f;
     size_t selectionAnchor = -1;
+    sf::Clock cursorBlinkClock;
+    bool cursorVisible = true;
+    const sf::Time CURSOR_BLINK_INTERVAL = sf::milliseconds(500);
     while (window.isOpen()) {
         // Update display text BEFORE processing events so cursor movement has accurate positions
         DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
@@ -354,6 +357,16 @@ int main() {
                 verticalMoveClock.restart();
             }
         }
+        // Cursor blinking logic
+        if (cursorMovedThisFrame) {
+            cursorVisible = true;
+            cursorBlinkClock.restart();
+        }
+
+        if (cursorBlinkClock.getElapsedTime() >= CURSOR_BLINK_INTERVAL) {
+            cursorVisible = !cursorVisible;
+            cursorBlinkClock.restart();
+        }
 
         // Calculate bounds for clamping
         sf::FloatRect textBounds = text.getGlobalBounds();
@@ -394,7 +407,9 @@ int main() {
         window.setView(textView);
 
         window.draw(text);
-        window.draw(cursor);
+        if (cursorVisible) {
+            window.draw(cursor);
+        }
 
         window.setView(uiView);
 
