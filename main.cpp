@@ -14,7 +14,11 @@ struct Button {
 
     Button(const sf::Font& font) : text(font) {}
 };
-
+enum class MouseState {
+    Idle,
+    Pressed,
+    Dragging
+};
 struct DisplayState {
     std::string content;
     size_t cursorIndex;
@@ -196,12 +200,16 @@ void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& 
 }
 
 int main() {
+    const float TOP_MARGIN = 50.0f;
+    const float SCROLL_PADDING = 10.f;
+    const sf::Time CURSOR_BLINK_INTERVAL = sf::milliseconds(500);
+
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
     sf::View uiView = window.getDefaultView();
     sf::View textView = window.getDefaultView();
     sf::Font font;
     if (!font.openFromFile("fonts/Roboto.ttf")) return 1;
-    const float TOP_MARGIN = 50.0f;
+
     sf::Text text(font);
     text.setCharacterSize(24);
     text.setFillColor(sf::Color::White);
@@ -218,11 +226,15 @@ int main() {
     textSize.text.setPosition(sf::Vector2f(195, 17));
     float scrollOffsetY = 0.f;
     bool cursorMovedThisFrame = false;
-    const float SCROLL_PADDING = 10.f;
-    size_t selectionAnchor = -1;
+
+    int selectionAnchor = -1;
     sf::Clock cursorBlinkClock;
     bool cursorVisible = true;
-    const sf::Time CURSOR_BLINK_INTERVAL = sf::milliseconds(500);
+
+    MouseState mouseState = MouseState::Idle;
+    sf::Vector2i mousePressPos;
+    const float DRAG_THRESHOLD = 4.f; // pixels
+
     while (window.isOpen()) {
         // Update display text BEFORE processing events so cursor movement has accurate positions
         DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
@@ -329,6 +341,8 @@ int main() {
 
             if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
+                    mouseState = MouseState::Pressed;
+                    mousePressPos = mouseEvent->position;
                     handleMouseClick(
                         mouseEvent->position,
                         gapBuffer,
@@ -338,6 +352,53 @@ int main() {
                         window,
                         textView
                     );
+                    selectionAnchor = gapBuffer.getGapStart();
+                }
+            }
+
+            if (const auto* moveEvent = event->getIf<sf::Event::MouseMoved>()) {
+                if (mouseState == MouseState::Pressed) {
+                    sf::Vector2f delta(
+                        moveEvent->position.x - mousePressPos.x,
+                        moveEvent->position.y - mousePressPos.y
+                    );
+
+                    if (std::hypot(delta.x, delta.y) > DRAG_THRESHOLD) {
+                        mouseState = MouseState::Dragging;
+                    }
+                }
+
+                if (mouseState == MouseState::Dragging) {
+                    // Convert mouse → text coords
+                    sf::Vector2f worldPos =
+                        window.mapPixelToCoords(moveEvent->position, textView);
+
+                    // Find closest character index (same logic as click)
+                    for (size_t i = 0; i <= text.getString().getSize(); i++) {
+                        sf::Vector2f charPos = text.findCharacterPos(i);
+                        float charHeight = text.getCharacterSize();
+
+                        if (worldPos.y >= charPos.y &&
+                            worldPos.y < charPos.y + charHeight) {
+                            gapBuffer.moveTo(i);
+                            break;
+                            }
+                    }
+
+                    cursorMovedThisFrame = true;
+                }
+            }
+
+            if (const auto* mouseEvent = event->getIf<sf::Event::MouseButtonReleased>()) {
+                if (mouseEvent->button == sf::Mouse::Button::Left) {
+
+                    if (mouseState == MouseState::Pressed) {
+
+                        selectionAnchor = -1;
+                    }
+
+
+                    mouseState = MouseState::Idle;
                 }
             }
         }
@@ -348,10 +409,12 @@ int main() {
 
         if (verticalMoveClock.getElapsedTime() > repeatDelay) {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
+                //TODO: add selection logic
                 moveCursorVertical(gapBuffer, text, font, false);
                 cursorMovedThisFrame = true;
                 verticalMoveClock.restart();
             } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
+                //TODO: add selection logic
                 moveCursorVertical(gapBuffer, text, font, true);
                 cursorMovedThisFrame = true;
                 verticalMoveClock.restart();
@@ -416,14 +479,13 @@ int main() {
         sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
         headerBg.setFillColor(sf::Color(30, 30, 30));
         window.draw(headerBg);
-
+        std::cout << selectionAnchor << std::endl;
         window.draw(textSize.shape);
         window.draw(textSize.text);
         window.draw(saveBtn.shape);
         window.draw(saveBtn.text);
         window.draw(loadBtn.shape);
         window.draw(loadBtn.text);
-
         window.display();
 
         cursorMovedThisFrame = false;
