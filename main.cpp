@@ -219,7 +219,7 @@ int main() {
     float scrollOffsetY = 0.f;
     bool cursorMovedThisFrame = false;
     const float SCROLL_PADDING = 10.f;
-
+    size_t selectionAnchor = -1;
     while (window.isOpen()) {
         // Update display text BEFORE processing events so cursor movement has accurate positions
         DisplayState state = wrapText(gapBuffer, text, static_cast<float>(window.getSize().x) - 10.0f);
@@ -259,11 +259,23 @@ int main() {
             }
 
             if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
-                if (keyEvent->code == sf::Keyboard::Key::Left) {
+                if (keyEvent->code == sf::Keyboard::Key::Left)  {
+                    if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)) && selectionAnchor == -1) {
+                        selectionAnchor = gapBuffer.getGapStart();
+                    }
+                    else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) && !sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)){
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.moveLeft();
                     cursorMovedThisFrame = true;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Right) {
+                    if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)) && selectionAnchor == -1) {
+                        selectionAnchor = gapBuffer.getGapStart();
+                    }
+                    else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) && !sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)){
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.moveRight();
                     cursorMovedThisFrame = true;
                 }
@@ -292,6 +304,7 @@ int main() {
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
                         loadFromFile(gapBuffer);
                     }
+                //Increase text
                 if (keyEvent->code == sf::Keyboard::Key::Equal &&
                     (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
@@ -299,6 +312,7 @@ int main() {
                         text.setCharacterSize(text.getCharacterSize() + 1);
                         updateCursorSize(cursor, font, text.getCharacterSize());
                     }
+                //Decrease text
                 if (keyEvent->code == sf::Keyboard::Key::Hyphen &&
                     (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
                     sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
