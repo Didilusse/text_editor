@@ -378,19 +378,33 @@ int main() {
 
                 if (mouseState == MouseState::Dragging) {
                     // Convert mouse → text coords
-                    sf::Vector2f worldPos =
-                        window.mapPixelToCoords(moveEvent->position, textView);
+                    sf::Vector2f worldPos = window.mapPixelToCoords(moveEvent->position, textView);
 
-                    // Find closest character index (same logic as click)
+                    int bestIndex = -1;
+                    float bestDistance = std::numeric_limits<float>::max();
+
+                    // Iterate through all characters to find the closest one on the correct line
                     for (size_t i = 0; i <= text.getString().getSize(); i++) {
                         sf::Vector2f charPos = text.findCharacterPos(i);
                         float charHeight = text.getCharacterSize();
 
-                        if (worldPos.y >= charPos.y &&
-                            worldPos.y < charPos.y + charHeight) {
-                            gapBuffer.moveTo(i);
-                            break;
+                        // Check if this character is on the same line (Y-level) as the mouse
+                        if (worldPos.y >= charPos.y && worldPos.y < charPos.y + charHeight) {
+
+                            // Calculate horizontal distance
+                            float dist = std::abs(worldPos.x - charPos.x);
+
+                            // Keep track of the closest match found so far
+                            if (dist < bestDistance) {
+                                bestDistance = dist;
+                                bestIndex = static_cast<int>(i);
                             }
+                        }
+                    }
+
+
+                    if (bestIndex != -1) {
+                        gapBuffer.moveTo(bestIndex);
                     }
 
                     cursorMovedThisFrame = true;
