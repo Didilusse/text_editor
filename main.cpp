@@ -413,20 +413,34 @@ int main() {
 
 
         static sf::Clock verticalMoveClock;
-        const sf::Time repeatDelay = sf::milliseconds(20);
+        static bool verticalKeyHeld = false;
 
-        if (verticalMoveClock.getElapsedTime() > repeatDelay) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
-                //TODO: add selection logic
-                moveCursorVertical(gapBuffer, text, font, false);
+        const sf::Time initialDelay = sf::milliseconds(250);
+        const sf::Time repeatDelay  = sf::milliseconds(60);
+
+        bool upHeld   = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up);
+        bool downHeld = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down);
+
+        if (upHeld || downHeld) {
+            if (!verticalKeyHeld) {
+                // First press: move immediately
+                moveCursorVertical(gapBuffer, text, font, downHeld);
                 cursorMovedThisFrame = true;
                 verticalMoveClock.restart();
-            } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
-                //TODO: add selection logic
-                moveCursorVertical(gapBuffer, text, font, true);
-                cursorMovedThisFrame = true;
-                verticalMoveClock.restart();
+                verticalKeyHeld = true;
+            } else {
+                // Key held: repeat after delay
+                sf::Time elapsed = verticalMoveClock.getElapsedTime();
+                sf::Time needed  = (elapsed < initialDelay) ? initialDelay : repeatDelay;
+
+                if (elapsed >= needed) {
+                    moveCursorVertical(gapBuffer, text, font, downHeld);
+                    cursorMovedThisFrame = true;
+                    verticalMoveClock.restart();
+                }
             }
+        } else {
+            verticalKeyHeld = false;
         }
         // Cursor blinking logic
         if (cursorMovedThisFrame) {
