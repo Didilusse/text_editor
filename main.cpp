@@ -477,6 +477,30 @@ int main() {
         );
         window.setView(textView);
 
+        if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+            size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+            size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+            for (size_t i = start; i < end; ++i) {
+                sf::Vector2f charPos = text.findCharacterPos(i);
+                sf::Vector2f nextCharPos = text.findCharacterPos(i + 1);
+
+                // Calculate width: distance to next char
+                float width = nextCharPos.x - charPos.x;
+                float height = font.getLineSpacing(text.getCharacterSize());
+
+
+                if (nextCharPos.y != charPos.y || width <= 0) {
+                    width = 10.f; // Arbitrary width to show newline selection
+                }
+
+                sf::RectangleShape selectionRect({width, height});
+                selectionRect.setFillColor(sf::Color(100, 100, 255, 128)); // Semi-transparent blue
+                selectionRect.setPosition(charPos);
+                window.draw(selectionRect);
+            }
+        }
+
         window.draw(text);
         if (cursorVisible) {
             window.draw(cursor);
