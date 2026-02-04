@@ -272,14 +272,45 @@ int main() {
 
             if (const auto *textEvent = event->getIf<sf::Event::TextEntered>()) {
                 if (textEvent->unicode == 8) {
-                    gapBuffer.backspace();
-                } else if (textEvent->unicode == 13) {
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+                        gapBuffer.moveTo(end);
+                        for (size_t i = 0; i < (end - start); ++i) {
+                            gapBuffer.backspace();
+                        }
+                        selectionAnchor = -1;
+                    }
+                    else {
+                        gapBuffer.backspace();
+                    }
+                }else if (textEvent->unicode == 13) {
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        gapBuffer.moveTo(end);
+                        for (size_t i = 0; i < (end - start); ++i) gapBuffer.backspace();
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.insert('\n');
-                } else {
+                } else if (textEvent->unicode >= 32 && textEvent->unicode < 128) {
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+                        gapBuffer.moveTo(end);
+                        for (size_t i = 0; i < (end - start); ++i) {
+                            gapBuffer.backspace();
+                        }
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.insert(static_cast<char>(textEvent->unicode));
                 }
+
                 cursorMovedThisFrame = true;
             }
+
 
             if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
                 bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
@@ -357,7 +388,7 @@ int main() {
                         selectionAnchor = -1;
                     }
 
-                    // 2. Perform the actual Paste
+                    // perform the actual Paste
                     std::string pasted = sf::Clipboard::getString();
                     for (char c : pasted) {
                         if (c != '\r') {
