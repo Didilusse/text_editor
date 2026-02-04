@@ -282,6 +282,9 @@ int main() {
             }
 
             if (const auto *keyEvent = event->getIf<sf::Event::KeyPressed>()) {
+                bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                   sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
+                   sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem);
                 if (keyEvent->code == sf::Keyboard::Key::Left)  {
                     if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)) && selectionAnchor == -1) {
                         selectionAnchor = gapBuffer.getGapStart();
@@ -312,6 +315,29 @@ int main() {
                         std::string selection = content.substr(start, end - start);
 
                         sf::Clipboard::setString(selection);
+                    }
+                }
+                //Cut
+                if (keyEvent->code == sf::Keyboard::Key::X && ctrlPressed) {
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+
+                        std::string content = gapBuffer.getString();
+                        std::string selection = content.substr(start, end - start);
+                        sf::Clipboard::setString(selection);
+
+
+                        // move cursor to the END of selection and backspace until START
+                        gapBuffer.moveTo(end);
+
+                        for (size_t i = 0; i < (end - start); ++i) {
+                            gapBuffer.backspace();
+                        }
+
+                        selectionAnchor = -1;
+                        cursorMovedThisFrame = true;
                     }
                 }
                 //Paste
