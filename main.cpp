@@ -341,13 +341,28 @@ int main() {
                     }
                 }
                 //Paste
-                if (keyEvent->code == sf::Keyboard::Key::V &&
-                    (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem))) {
+                if (keyEvent->code == sf::Keyboard::Key::V && ctrlPressed) {
+
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+
+                        gapBuffer.moveTo(end);
+                        for (size_t i = 0; i < (end - start); ++i) {
+                            gapBuffer.backspace();
+                        }
+
+
+                        selectionAnchor = -1;
+                    }
+
+                    // 2. Perform the actual Paste
                     std::string pasted = sf::Clipboard::getString();
                     for (char c : pasted) {
-                        gapBuffer.insert(c);
+                        if (c != '\r') {
+                            gapBuffer.insert(c);
+                        }
                     }
                     cursorMovedThisFrame = true;
                 }
