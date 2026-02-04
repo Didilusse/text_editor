@@ -285,7 +285,7 @@ int main() {
                     else {
                         gapBuffer.backspace();
                     }
-                }else if (textEvent->unicode == 13) {
+                }else if (textEvent->unicode == 13 || textEvent->unicode == 10) {
                     if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
                         size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
                         size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
@@ -371,7 +371,13 @@ int main() {
                         cursorMovedThisFrame = true;
                     }
                 }
-                //Paste
+                //Select All
+                if (keyEvent->code == sf::Keyboard::Key::A && ctrlPressed) {
+                    selectionAnchor = 0;
+                    gapBuffer.moveTo(text.getString().getSize());
+                    cursorMovedThisFrame = true;
+                }
+
                 if (keyEvent->code == sf::Keyboard::Key::V && ctrlPressed) {
 
                     if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
