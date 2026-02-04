@@ -302,6 +302,18 @@ int main() {
                     gapBuffer.moveRight();
                     cursorMovedThisFrame = true;
                 }
+                //Copy
+                if (keyEvent->code == sf::Keyboard::Key::C && ctrlPressed) {
+                    if (selectionAnchor != -1 && selectionAnchor != gapBuffer.getGapStart()) {
+                        size_t start = std::min((size_t)selectionAnchor, gapBuffer.getGapStart());
+                        size_t end   = std::max((size_t)selectionAnchor, gapBuffer.getGapStart());
+
+                        std::string content = gapBuffer.getString();
+                        std::string selection = content.substr(start, end - start);
+
+                        sf::Clipboard::setString(selection);
+                    }
+                }
                 //Paste
                 if (keyEvent->code == sf::Keyboard::Key::V &&
                     (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
