@@ -17,7 +17,8 @@ struct Button {
 enum class MouseState {
     Idle,
     Pressed,
-    Dragging
+    Dragging,
+    ScrollbarDragging
 };
 struct DisplayState {
     std::string content;
@@ -625,7 +626,42 @@ int main() {
         }
 
         window.setView(uiView);
+        // --- SCROLLBAR LOGIC ---
 
+        // 1. Determine Dimensions
+        float windowW = static_cast<float>(window.getSize().x);
+        float windowH = static_cast<float>(window.getSize().y);
+        float totalContentHeight =
+            std::max(windowH, textBounds.position.y + textBounds.size.y + SCROLL_PADDING);
+
+        // 2. Calculate Thumb Height (Proportional)
+        // If content is huge, thumb gets small. We clamp it to min 20px so it doesn't vanish.
+        float thumbHeight = (windowH / totalContentHeight) * windowH;
+        if (thumbHeight < 20.f) thumbHeight = 20.f;
+
+        // 3. Calculate Thumb Position
+        // We map the scrollOffsetY (0 to maxScroll) to the available track space (0 to windowH - thumbHeight)
+        float maxScrollY = std::max(0.f, totalContentHeight - windowH);
+        float scrollRatio = (maxScrollY > 0) ? (scrollOffsetY / maxScrollY) : 0.f;
+        float thumbY = scrollRatio * (windowH - thumbHeight);
+
+        // 4. Draw the Scrollbar Track (Optional, creates a background lane)
+        sf::RectangleShape scrollTrack({12.f, windowH});
+        scrollTrack.setFillColor(sf::Color(40, 40, 40)); // Dark grey background
+        scrollTrack.setPosition(sf::Vector2f(windowW - 12.f, 0.f));
+        window.draw(scrollTrack);
+
+        // 5. Draw the Scrollbar Thumb
+        sf::RectangleShape scrollThumb({10.f, thumbHeight});
+        scrollThumb.setFillColor(sf::Color(150, 150, 150)); // Lighter grey handle
+        scrollThumb.setPosition(sf::Vector2f(windowW - 11.f, thumbY)); // Centered in the 12px track
+        scrollThumb.setOutlineColor(sf::Color(80, 80, 80));
+        scrollThumb.setOutlineThickness(1.f);
+
+        // Hide scrollbar if content fits on screen
+        if (totalContentHeight > windowH) {
+            window.draw(scrollThumb);
+        }
         sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
         headerBg.setFillColor(sf::Color(30, 30, 30));
         window.draw(headerBg);
