@@ -216,6 +216,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
     sf::View uiView = window.getDefaultView();
     sf::View textView = window.getDefaultView();
+    window.setFramerateLimit(60);
     sf::Font font;
     if (!font.openFromFile("fonts/Roboto.ttf")) return 1;
 
@@ -440,23 +441,100 @@ int main() {
 
             if (const auto *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
-                    mouseState = MouseState::Pressed;
-                    mousePressPos = mouseEvent->position;
-                    handleMouseClick(
-                        mouseEvent->position,
-                        gapBuffer,
-                        text,
-                        saveBtn,
-                        loadBtn,
-                        window,
-                        textView
-                    );
-                    selectionAnchor = gapBuffer.getGapStart();
+                    float windowWidth = static_cast<float>(window.getSize().x);
+                    float windowH = static_cast<float>(window.getSize().y);
+
+                    // Check if clicking on the scrollbar area
+                    if (mouseEvent->position.x >= windowWidth - 12) {
+                        mouseState = MouseState::ScrollbarDragging;
+
+                        // Calculate scrollbar properties
+                        sf::FloatRect textBounds = text.getGlobalBounds();
+                        float totalContentHeight = std::max(windowH, textBounds.position.y + textBounds.size.y + SCROLL_PADDING);
+                        float maxScroll = std::max(0.f, totalContentHeight - windowH);
+
+                        // Calculate thumb height and position
+                        float thumbHeight = (windowH / totalContentHeight) * windowH;
+                        if (thumbHeight < 20.f) thumbHeight = 20.f;
+
+                        float thumbTravel = windowH - thumbHeight;
+                        float currentThumbY = 0.f;
+                        if (maxScroll > 0.f) {
+                            float ratio = scrollOffsetY / maxScroll;
+                            currentThumbY = ratio * thumbTravel;
+                        }
+
+                        float mouseY = static_cast<float>(mouseEvent->position.y);
+
+                        // Check if clicking on the thumb itself or on the track
+                        if (mouseY >= currentThumbY && mouseY <= currentThumbY + thumbHeight) {
+                            // Clicking on the thumb - will drag from current position
+                            mousePressPos = mouseEvent->position;
+                        } else {
+                            // Clicking on the track - jump to that position
+                            float targetThumbY = mouseY - (thumbHeight / 2.f);
+                            targetThumbY = std::clamp(targetThumbY, 0.f, thumbTravel);
+
+                            if (thumbTravel > 0.f) {
+                                float ratio = targetThumbY / thumbTravel;
+                                scrollOffsetY = ratio * maxScroll;
+                                scrollOffsetY = std::clamp(scrollOffsetY, 0.f, maxScroll);
+                            }
+
+                            mousePressPos = mouseEvent->position;
+                        }
+                    } else {
+                        // Not clicking on scrollbar
+                        mouseState = MouseState::Pressed;
+                        mousePressPos = mouseEvent->position;
+
+                        handleMouseClick(
+                            mouseEvent->position,
+                            gapBuffer,
+                            text,
+                            saveBtn,
+                            loadBtn,
+                            window,
+                            textView
+                        );
+                        selectionAnchor = gapBuffer.getGapStart();
+                    }
                 }
             }
 
             if (const auto* moveEvent = event->getIf<sf::Event::MouseMoved>()) {
-                if (mouseState == MouseState::Pressed) {
+                if (mouseState == MouseState::ScrollbarDragging) {
+                    float windowH = static_cast<float>(window.getSize().y);
+
+                    // Calculate total content height and max scroll
+                    sf::FloatRect textBounds = text.getGlobalBounds();
+                    float totalContentHeight = std::max(windowH, textBounds.position.y + textBounds.size.y + SCROLL_PADDING);
+                    float maxScroll = std::max(0.f, totalContentHeight - windowH);
+
+                    // Calculate thumb height
+                    float thumbHeight = (windowH / totalContentHeight) * windowH;
+                    if (thumbHeight < 20.f) thumbHeight = 20.f;
+
+                    // Calculate the available space for the thumb to move
+                    float thumbTravel = windowH - thumbHeight;
+
+                    // Get mouse Y position and clamp it to the scrollbar track
+                    float mouseY = static_cast<float>(moveEvent->position.y);
+                    mouseY = std::clamp(mouseY, 0.f, windowH);
+
+                    // Calculate the new thumb position (center the thumb on the mouse)
+                    float thumbY = mouseY - (thumbHeight / 2.f);
+                    thumbY = std::clamp(thumbY, 0.f, thumbTravel);
+
+                    // Map thumb position to scroll offset
+                    if (thumbTravel > 0.f) {
+                        float ratio = thumbY / thumbTravel;
+                        scrollOffsetY = ratio * maxScroll;
+                    }
+
+                    scrollOffsetY = std::clamp(scrollOffsetY, 0.f, maxScroll);
+                }
+                else if (mouseState == MouseState::Pressed) {
                     sf::Vector2f delta(
                         moveEvent->position.x - mousePressPos.x,
                         moveEvent->position.y - mousePressPos.y
@@ -466,8 +544,7 @@ int main() {
                         mouseState = MouseState::Dragging;
                     }
                 }
-
-                if (mouseState == MouseState::Dragging) {
+                else if (mouseState == MouseState::Dragging) {
                     // Convert mouse → text coords
                     sf::Vector2f worldPos = window.mapPixelToCoords(moveEvent->position, textView);
 
@@ -626,42 +703,36 @@ int main() {
         }
 
         window.setView(uiView);
-        // --- SCROLLBAR LOGIC ---
 
-        // 1. Determine Dimensions
         float windowW = static_cast<float>(window.getSize().x);
         float windowH = static_cast<float>(window.getSize().y);
         float totalContentHeight =
             std::max(windowH, textBounds.position.y + textBounds.size.y + SCROLL_PADDING);
-
-        // 2. Calculate Thumb Height (Proportional)
-        // If content is huge, thumb gets small. We clamp it to min 20px so it doesn't vanish.
+        float contentH = std::max(windowH, text.getGlobalBounds().position.y + TOP_MARGIN + SCROLL_PADDING);
         float thumbHeight = (windowH / totalContentHeight) * windowH;
         if (thumbHeight < 20.f) thumbHeight = 20.f;
-
-        // 3. Calculate Thumb Position
-        // We map the scrollOffsetY (0 to maxScroll) to the available track space (0 to windowH - thumbHeight)
-        float maxScrollY = std::max(0.f, totalContentHeight - windowH);
-        float scrollRatio = (maxScrollY > 0) ? (scrollOffsetY / maxScrollY) : 0.f;
-        float thumbY = scrollRatio * (windowH - thumbHeight);
-
-        // 4. Draw the Scrollbar Track (Optional, creates a background lane)
         sf::RectangleShape scrollTrack({12.f, windowH});
         scrollTrack.setFillColor(sf::Color(40, 40, 40)); // Dark grey background
         scrollTrack.setPosition(sf::Vector2f(windowW - 12.f, 0.f));
         window.draw(scrollTrack);
 
-        // 5. Draw the Scrollbar Thumb
-        sf::RectangleShape scrollThumb({10.f, thumbHeight});
-        scrollThumb.setFillColor(sf::Color(150, 150, 150)); // Lighter grey handle
-        scrollThumb.setPosition(sf::Vector2f(windowW - 11.f, thumbY)); // Centered in the 12px track
-        scrollThumb.setOutlineColor(sf::Color(80, 80, 80));
-        scrollThumb.setOutlineThickness(1.f);
-
-        // Hide scrollbar if content fits on screen
         if (totalContentHeight > windowH) {
+            float thumbHeight = (windowH / totalContentHeight) * windowH;
+            if (thumbHeight < 20.f) thumbHeight = 20.f;
+
+            float maxScrollY = totalContentHeight - windowH;
+            float ratio = scrollOffsetY / maxScrollY;
+            float thumbY = ratio * (windowH - thumbHeight);
+
+            sf::RectangleShape scrollThumb({10.f, thumbHeight});
+            scrollThumb.setFillColor(sf::Color(150, 150, 150));
+            scrollThumb.setPosition(sf::Vector2f(windowW - 11.f, thumbY));
+            scrollThumb.setOutlineColor(sf::Color(80, 80, 80));
+            scrollThumb.setOutlineThickness(1.f);
+
             window.draw(scrollThumb);
         }
+
         sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
         headerBg.setFillColor(sf::Color(30, 30, 30));
         window.draw(headerBg);
