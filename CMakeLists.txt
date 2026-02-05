@@ -10,6 +10,16 @@ add_executable(text_editor
         src/GapBuffer.cpp
         libs/nativefiledialog/src/nfd_common.c
         libs/nativefiledialog/src/nfd_cocoa.m
+        src/UI.cpp
+        src/UI.h
+        src/Scrollbar.cpp
+        src/Scrollbar.h
+        src/TextRenderer.cpp
+        src/TextRenderer.h
+        src/FileOperations.cpp
+        src/FileOperations.h
+        src/InputHandler.cpp
+        src/InputHandler.h
 )
 
 target_include_directories(text_editor PRIVATE
