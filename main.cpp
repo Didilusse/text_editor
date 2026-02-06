@@ -35,8 +35,22 @@ int main() {
 
     Button saveBtn = createButton(font, "Save", sf::Vector2f(10, 10));
     Button loadBtn = createButton(font, "Load", sf::Vector2f(100, 10));
-    Button textSize = createButton(font, "", sf::Vector2f(650, 10));
+
+    // Text size button - will be positioned dynamically
+    Button textSize(font);
     textSize.shape.setSize(sf::Vector2f(140, 30));
+    textSize.shape.setFillColor(sf::Color(50, 50, 50));
+    textSize.text.setFont(font);
+    textSize.text.setCharacterSize(18);
+    textSize.text.setFillColor(sf::Color::White);
+
+    // Helper function to update text size button position
+    auto updateTextSizeButtonPosition = [&]() {
+        float xPos = static_cast<float>(window.getSize().x) - 152.f; // 140 width + 12 scrollbar
+        textSize.shape.setPosition(sf::Vector2f(xPos, 10));
+        textSize.text.setPosition(sf::Vector2f(xPos + 10, 12));
+    };
+    updateTextSizeButtonPosition();
 
     bool cursorVisible = true;
     sf::Clock cursorBlinkClock;
@@ -62,6 +76,9 @@ int main() {
 
                 textView.setSize(newSize);
                 textView.setCenter(newSize / 2.f);
+
+                // Update text size button position to stay anchored to right
+                updateTextSizeButtonPosition();
             }
 
             if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
