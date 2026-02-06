@@ -58,6 +58,7 @@ int main() {
     MouseState mouseState = MouseState::Idle;
     sf::Vector2i mousePressPos;
     int selectionAnchor = -1;
+    std::string clipboard = ""; // Internal clipboard storage
 
     while (window.isOpen()) {
         bool cursorMovedThisFrame = false;
@@ -84,9 +85,16 @@ int main() {
             if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
                 if (textEvent->unicode < 128 && textEvent->unicode != '\b' &&
                     textEvent->unicode != 127) {
+                    // If there's a selection, delete it first before inserting
+                    if (selectionAnchor != -1) {
+                        int cursor = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursor);
+                        int end = std::max(selectionAnchor, cursor);
+                        gapBuffer.deleteRange(start, end);
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.insert(static_cast<char>(textEvent->unicode));
                     cursorMovedThisFrame = true;
-                    selectionAnchor = -1;
                 }
             }
 
@@ -95,20 +103,66 @@ int main() {
                                  sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl) ||
                                  sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LSystem);
 
+                bool shiftPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
+                                   sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift);
+
                 if (keyEvent->code == sf::Keyboard::Key::Left) {
+                    if (shiftPressed) {
+                        // Start selection if not already active
+                        if (selectionAnchor == -1) {
+                            selectionAnchor = gapBuffer.getGapStart();
+                        }
+                    } else {
+                        // Clear selection if not holding shift
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.moveLeft();
                     cursorMovedThisFrame = true;
-                    selectionAnchor = -1;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Right) {
+                    if (shiftPressed) {
+                        // Start selection if not already active
+                        if (selectionAnchor == -1) {
+                            selectionAnchor = gapBuffer.getGapStart();
+                        }
+                    } else {
+                        // Clear selection if not holding shift
+                        selectionAnchor = -1;
+                    }
                     gapBuffer.moveRight();
                     cursorMovedThisFrame = true;
-                    selectionAnchor = -1;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Backspace) {
-                    gapBuffer.backspace();
+                    if (selectionAnchor != -1) {
+                        // Delete the selection
+                        int cursor = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursor);
+                        int end = std::max(selectionAnchor, cursor);
+                        gapBuffer.deleteRange(start, end);
+                        selectionAnchor = -1;
+                    } else {
+                        // Normal backspace
+                        gapBuffer.backspace();
+                    }
                     cursorMovedThisFrame = true;
-                    selectionAnchor = -1;
+                }
+                if (keyEvent->code == sf::Keyboard::Key::Delete) {
+                    if (selectionAnchor != -1) {
+                        // Delete the selection
+                        int cursor = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursor);
+                        int end = std::max(selectionAnchor, cursor);
+                        gapBuffer.deleteRange(start, end);
+                        selectionAnchor = -1;
+                    } else {
+                        // Delete character at cursor position
+                        int cursorPos = gapBuffer.getGapStart();
+                        std::string currentText = gapBuffer.getString();
+                        if (cursorPos < static_cast<int>(currentText.length())) {
+                            gapBuffer.deleteRange(cursorPos, cursorPos + 1);
+                        }
+                    }
+                    cursorMovedThisFrame = true;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::S && ctrlOrCmd) {
                     saveToFile(gapBuffer);
@@ -124,6 +178,58 @@ int main() {
                     if (text.getCharacterSize() >= 6) {
                         text.setCharacterSize(text.getCharacterSize() - 1);
                         updateCursorSize(cursor, font, text.getCharacterSize());
+                    }
+                }
+
+                // Clipboard operations
+                if (keyEvent->code == sf::Keyboard::Key::A && ctrlOrCmd) {
+                    // Select All
+                    selectionAnchor = 0;
+                    gapBuffer.moveTo(static_cast<int>(gapBuffer.getString().length()));
+                    cursorMovedThisFrame = true;
+                }
+                if (keyEvent->code == sf::Keyboard::Key::C && ctrlOrCmd) {
+                    // Copy
+                    if (selectionAnchor != -1) {
+                        int cursor = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursor);
+                        int end = std::max(selectionAnchor, cursor);
+                        clipboard = gapBuffer.getRange(start, end);
+                        sf::Clipboard::setString(clipboard); // Also set system clipboard
+                    }
+                }
+                if (keyEvent->code == sf::Keyboard::Key::X && ctrlOrCmd) {
+                    // Cut
+                    if (selectionAnchor != -1) {
+                        int cursor = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursor);
+                        int end = std::max(selectionAnchor, cursor);
+                        clipboard = gapBuffer.getRange(start, end);
+                        sf::Clipboard::setString(clipboard); // Also set system clipboard
+                        gapBuffer.deleteRange(start, end);
+                        selectionAnchor = -1;
+                        cursorMovedThisFrame = true;
+                    }
+                }
+                if (keyEvent->code == sf::Keyboard::Key::V && ctrlOrCmd) {
+                    // Paste
+                    // Try system clipboard first, fall back to internal clipboard
+                    std::string textToPaste = sf::Clipboard::getString().toAnsiString();
+                    if (textToPaste.empty()) {
+                        textToPaste = clipboard;
+                    }
+
+                    if (!textToPaste.empty()) {
+                        // If there's a selection, delete it first
+                        if (selectionAnchor != -1) {
+                            int cursor = static_cast<int>(gapBuffer.getGapStart());
+                            int start = std::min(selectionAnchor, cursor);
+                            int end = std::max(selectionAnchor, cursor);
+                            gapBuffer.deleteRange(start, end);
+                            selectionAnchor = -1;
+                        }
+                        gapBuffer.insertString(textToPaste);
+                        cursorMovedThisFrame = true;
                     }
                 }
             }
