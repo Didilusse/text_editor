@@ -27,6 +27,9 @@ public:
     void moveRight();
     void moveTo(size_t i);
     void clear();
+    void deleteRange(size_t start, size_t end);
+    std::string getRange(size_t start, size_t end) const;
+    void insertString(const std::string& str);
 };
 
 

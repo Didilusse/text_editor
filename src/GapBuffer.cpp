@@ -108,3 +108,38 @@ void GapBuffer::clear() {
     setGapEnd(10);
 }
 
+void GapBuffer::deleteRange(size_t start, size_t end) {
+    if (start >= end) return;
+
+    // Move gap to start position
+    moveTo(start);
+
+    // Calculate how many characters to delete
+    size_t deleteCount = end - start;
+
+    // Expand the gap by moving gapEnd forward
+    size_t newGapEnd = getGapEnd() + deleteCount;
+    if (newGapEnd > buffer.size()) {
+        newGapEnd = buffer.size();
+    }
+    setGapEnd(newGapEnd);
+}
+
+std::string GapBuffer::getRange(size_t start, size_t end) const {
+    if (start >= end) return "";
+
+    std::string result;
+    size_t textSize = buffer.size() - (getGapEnd() - getGapStart());
+
+    for (size_t i = start; i < end && i < textSize; i++) {
+        result += getChar(i);
+    }
+
+    return result;
+}
+
+void GapBuffer::insertString(const std::string& str) {
+    for (char c : str) {
+        insert(c);
+    }
+}
