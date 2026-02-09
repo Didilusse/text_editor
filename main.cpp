@@ -56,6 +56,27 @@ int main() {
     };
     updateTextSizeButtonPosition();
 
+    // --- Helper function for Saving ---
+    // This centralizes logic to prevent code duplication and ensure correct behavior
+    auto performSave = [&]() {
+        std::string savedFile;
+
+        // If file is new/untitled, pass empty string to trigger "Save As" dialog
+        if (currentFileName == "Untitled") {
+            savedFile = saveToFile(gapBuffer, "");
+        }
+        // If file already exists, pass the name to save directly (overwrite)
+        else {
+            savedFile = saveToFile(gapBuffer, currentFileName);
+        }
+
+        // If save was successful (filename returned), update state
+        if (!savedFile.empty()) {
+            currentFileName = savedFile;
+            window.setTitle("Text Editor - " + currentFileName);
+        }
+    };
+
     bool cursorVisible = true;
     sf::Clock cursorBlinkClock;
 
@@ -210,13 +231,12 @@ int main() {
                     }
                     cursorMovedThisFrame = true;
                 }
+
+                // SAVE SHORTCUT (Ctrl + S)
                 if (keyEvent->code == sf::Keyboard::Key::S && ctrlOrCmd) {
-                    std::string savedFile = saveToFile(gapBuffer, currentFileName);
-                    if (!savedFile.empty()) {
-                        currentFileName = savedFile;
-                        window.setTitle("Text Editor - " + currentFileName);
-                    }
+                    performSave();
                 }
+
                 if (keyEvent->code == sf::Keyboard::Key::O && ctrlOrCmd) {
                     std::string loadedFile = loadFromFile(gapBuffer);
                     if (!loadedFile.empty()) {
@@ -315,13 +335,11 @@ int main() {
                         sf::Vector2f uiPos(static_cast<float>(mouseEvent->position.x),
                                          static_cast<float>(mouseEvent->position.y));
 
+                        // SAVE BUTTON CLICK
                         if (saveBtn.shape.getGlobalBounds().contains(uiPos)) {
-                            std::string savedFile = saveToFile(gapBuffer, currentFileName);
-                            if (!savedFile.empty()) {
-                                currentFileName = savedFile;
-                                window.setTitle("Text Editor - " + currentFileName);
-                            }
-                        } else if (loadBtn.shape.getGlobalBounds().contains(uiPos)) {
+                            performSave();
+                        }
+                        else if (loadBtn.shape.getGlobalBounds().contains(uiPos)) {
                             std::string loadedFile = loadFromFile(gapBuffer);
                             if (!loadedFile.empty()) {
                                 currentFileName = loadedFile;
