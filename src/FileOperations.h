@@ -5,5 +5,7 @@
 #pragma once
 #include "GapBuffer.h"
 
-void saveToFile(const GapBuffer& buffer);
-void loadFromFile(GapBuffer& buffer);
+#include <string>
+
+std::string saveToFile(const GapBuffer& buffer, const std::string& suggestedName);
+std::string loadFromFile(GapBuffer& buffer);

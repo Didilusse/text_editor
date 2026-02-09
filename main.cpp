@@ -16,6 +16,8 @@ int main() {
     const sf::Time CURSOR_BLINK_INTERVAL = sf::milliseconds(500);
 
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
+    std::string currentFileName = "Untitled";
+    window.setTitle("Text Editor - " + currentFileName);
     sf::View uiView = window.getDefaultView();
     sf::View textView = window.getDefaultView();
     window.setFramerateLimit(60);
@@ -209,10 +211,18 @@ int main() {
                     cursorMovedThisFrame = true;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::S && ctrlOrCmd) {
-                    saveToFile(gapBuffer);
+                    std::string savedFile = saveToFile(gapBuffer, currentFileName);
+                    if (!savedFile.empty()) {
+                        currentFileName = savedFile;
+                        window.setTitle("Text Editor - " + currentFileName);
+                    }
                 }
                 if (keyEvent->code == sf::Keyboard::Key::O && ctrlOrCmd) {
-                    loadFromFile(gapBuffer);
+                    std::string loadedFile = loadFromFile(gapBuffer);
+                    if (!loadedFile.empty()) {
+                        currentFileName = loadedFile;
+                        window.setTitle("Text Editor - " + currentFileName);
+                    }
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Equal && ctrlOrCmd) {
                     text.setCharacterSize(text.getCharacterSize() + 1);
@@ -306,9 +316,17 @@ int main() {
                                          static_cast<float>(mouseEvent->position.y));
 
                         if (saveBtn.shape.getGlobalBounds().contains(uiPos)) {
-                            saveToFile(gapBuffer);
+                            std::string savedFile = saveToFile(gapBuffer, currentFileName);
+                            if (!savedFile.empty()) {
+                                currentFileName = savedFile;
+                                window.setTitle("Text Editor - " + currentFileName);
+                            }
                         } else if (loadBtn.shape.getGlobalBounds().contains(uiPos)) {
-                            loadFromFile(gapBuffer);
+                            std::string loadedFile = loadFromFile(gapBuffer);
+                            if (!loadedFile.empty()) {
+                                currentFileName = loadedFile;
+                                window.setTitle("Text Editor - " + currentFileName);
+                            }
                         } else {
                             // Clicking in text area
                             handleMouseClick(mouseEvent->position, gapBuffer, text,

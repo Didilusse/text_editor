@@ -7,31 +7,40 @@
 #include "nfd.h"
 #include <string>
 
-void saveToFile(const GapBuffer& buffer) {
-    nfdchar_t *outPath = nullptr;
-    nfdresult_t result = NFD_SaveDialog(nullptr, nullptr, &outPath);
+std::string saveToFile(const GapBuffer& buffer, const std::string& suggestedName) {
+    nfdchar_t* outPath = nullptr;
+    nfdresult_t result = NFD_SaveDialog(
+        nullptr,
+        suggestedName.empty() ? nullptr : suggestedName.c_str(),
+        &outPath
+    );
 
-    if (result == NFD_OKAY) {
+    if (result == NFD_OKAY && outPath) {
         std::string path(outPath);
+
         if (path.size() < 4 || path.substr(path.size() - 4) != ".txt") {
             path += ".txt";
         }
+
         std::ofstream outputFile(path);
         if (outputFile.is_open()) {
-            outputFile << buffer.getString() << std::endl;
+            outputFile << buffer.getString();
             outputFile.close();
         }
+
         free(outPath);
-    } else {
-        if (outPath) free(outPath);
+        return path;
     }
+
+    if (outPath) free(outPath);
+    return "";
 }
 
-void loadFromFile(GapBuffer& buffer) {
-    nfdchar_t *outPath = nullptr;
+std::string loadFromFile(GapBuffer& buffer) {
+    nfdchar_t* outPath = nullptr;
     nfdresult_t result = NFD_OpenDialog(nullptr, nullptr, &outPath);
 
-    if (result == NFD_OKAY) {
+    if (result == NFD_OKAY && outPath) {
         std::ifstream inputFile(outPath);
         if (inputFile.is_open()) {
             buffer.clear();
@@ -41,8 +50,12 @@ void loadFromFile(GapBuffer& buffer) {
             }
             inputFile.close();
         }
+
+        std::string path(outPath);
         free(outPath);
-    } else {
-        if (outPath) free(outPath);
+        return path;
     }
+
+    if (outPath) free(outPath);
+    return "";
 }
