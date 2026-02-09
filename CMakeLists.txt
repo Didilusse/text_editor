@@ -20,6 +20,8 @@ add_executable(text_editor
         src/FileOperations.h
         src/InputHandler.cpp
         src/InputHandler.h
+        src/SearchDialog.cpp
+        src/SearchDialog.h
 )
 
 target_include_directories(text_editor PRIVATE

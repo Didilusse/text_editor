@@ -15,7 +15,7 @@ SearchDialog::SearchDialog(const sf::Font& font)
 
     // Semi-transparent background overlay
     background.setSize(sf::Vector2f(10000, 10000));
-    background.setFillColor(sf::Color(0, 0, 0, 100));
+    background.setFillColor(sf::Color(0, 0, 0, 150));
 
     // Dialog box
     dialogBox.setSize(sf::Vector2f(400, 120));
@@ -54,6 +54,8 @@ SearchDialog::SearchDialog(const sf::Font& font)
 
 void SearchDialog::show() {
     isVisible = true;
+    // Don't clear searchQuery - preserve the previous search
+    // matchPositions will be updated when updateSearch is called
     cursorBlinkClock.restart();
     cursorVisible = true;
 }
@@ -189,12 +191,7 @@ void SearchDialog::update() {
 
 void SearchDialog::draw(sf::RenderWindow& window) {
     if (!isVisible) return;
-    sf::FloatRect textBounds = searchText.getLocalBounds();
-    sf::Vector2f textPos = searchText.getPosition();
-    cursor.setPosition(sf::Vector2f(
-        textPos.x + textBounds.size.x,
-        textPos.y - 2
-    ));
+
     // Draw semi-transparent background
     window.draw(background);
 
@@ -209,6 +206,14 @@ void SearchDialog::draw(sf::RenderWindow& window) {
 
     // Draw search text
     window.draw(searchText);
+
+    // Update cursor position to follow text (do this here so it updates every frame)
+    sf::FloatRect textBounds = searchText.getLocalBounds();
+    sf::Vector2f textPos = searchText.getPosition();
+    cursor.setPosition(sf::Vector2f(
+        textPos.x + textBounds.size.x,
+        textPos.y - 2  // Slight offset to align better
+    ));
 
     // Draw cursor
     if (cursorVisible) {
@@ -232,7 +237,6 @@ void SearchDialog::setPosition(sf::Vector2f windowSize) {
 
     searchText.setPosition(sf::Vector2f(dialogX + 25, dialogY + 45));
 
-    // Position cursor at end of text
     sf::FloatRect textBounds = searchText.getLocalBounds();
     cursor.setPosition(sf::Vector2f(
         dialogX + 25 + textBounds.size.x,

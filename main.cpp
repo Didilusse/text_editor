@@ -229,6 +229,8 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::F && ctrlOrCmd) {
                     searchDialog.show();
                     searchDialog.setPosition(sf::Vector2f(window.getSize().x, window.getSize().y));
+                    // Update search with current text to restore previous matches
+                    searchDialog.updateSearch(gapBuffer.getString());
                 }
 
                 // Clipboard operations
@@ -435,6 +437,23 @@ int main() {
         sf::Vector2f cursorPos = cursor.getPosition();
         float cursorHeight = cursor.getSize().y;
 
+        // Draw search highlight (must be after wrapText + textView)
+        if (searchDialog.getIsVisible() && searchDialog.hasMatches()) {
+            int matchPos = static_cast<int>(searchDialog.getCurrentMatchPosition());
+            int matchLen = static_cast<int>(searchDialog.getMatchLength());
+
+            sf::Vector2f startPos = text.findCharacterPos(matchPos);
+            sf::Vector2f endPos   = text.findCharacterPos(matchPos + matchLen);
+
+            searchHighlight.setPosition(startPos);
+            searchHighlight.setSize(sf::Vector2f(
+                std::max(2.f, endPos.x - startPos.x),
+                static_cast<float>(text.getCharacterSize())
+            ));
+
+            window.draw(searchHighlight);
+        }
+
         // Auto-scroll to cursor
         if (cursorMovedThisFrame) {
             float windowHeight = static_cast<float>(window.getSize().y);
@@ -466,8 +485,35 @@ int main() {
         window.setView(textView);
 
         // Draw selection highlighting
+
         drawSelection(window, text, font, selectionAnchor, gapBuffer.getGapStart());
 
+        // Draw search result highlighting
+        if (searchDialog.hasMatches() && searchDialog.getIsVisible()) {
+            size_t rawMatchPos = searchDialog.getCurrentMatchPosition();
+            size_t rawMatchLen = searchDialog.getMatchLength();
+
+            // Convert raw buffer positions to display positions (accounting for word wrap)
+            size_t displayMatchPos = mapRawToDisplay(gapBuffer.getString(), rawMatchPos, text, textAreaWidth);
+            size_t displayMatchEnd = mapRawToDisplay(gapBuffer.getString(), rawMatchPos + rawMatchLen, text, textAreaWidth);
+
+            // Draw highlight for each character in the match
+            for (size_t i = displayMatchPos; i < displayMatchEnd; i++) {
+                sf::Vector2f charPos = text.findCharacterPos(i);
+                sf::Vector2f nextCharPos = text.findCharacterPos(i + 1);
+
+                float width = nextCharPos.x - charPos.x;
+                float height = text.getCharacterSize();
+
+                if (nextCharPos.y != charPos.y || width <= 0) {
+                    width = 10.f; // Fallback width for newlines
+                }
+
+                searchHighlight.setPosition(charPos);
+                searchHighlight.setSize(sf::Vector2f(width, height));
+                window.draw(searchHighlight);
+            }
+        }
 
         // Draw text and cursor
         window.draw(text);

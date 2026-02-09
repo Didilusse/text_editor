@@ -102,3 +102,50 @@ void drawSelection(sf::RenderWindow& window, const sf::Text& text, const sf::Fon
         }
     }
 }
+
+size_t mapRawToDisplay(const std::string& raw, size_t rawPos, sf::Text& textObj, float maxWidth) {
+    std::string displayString;
+    std::string currentLine;
+    std::string wordBuffer;
+    size_t displayPos = 0;
+    bool posFound = false;
+
+    for (size_t i = 0; i < raw.size(); i++) {
+        if (i == rawPos) {
+            displayPos = displayString.size() + currentLine.size() + wordBuffer.size();
+            posFound = true;
+            break;
+        }
+
+        char c = raw[i];
+
+        if (c == '\n') {
+            currentLine += wordBuffer;
+            displayString += currentLine + "\n";
+            currentLine.clear();
+            wordBuffer.clear();
+            continue;
+        }
+
+        wordBuffer += c;
+
+        if (c == ' ' || i == raw.size() - 1) {
+            sf::Text temp = textObj;
+            temp.setString(currentLine + wordBuffer);
+
+            if (temp.getLocalBounds().size.x > maxWidth) {
+                displayString += currentLine + "\n";
+                currentLine.clear();
+            }
+
+            currentLine += wordBuffer;
+            wordBuffer.clear();
+        }
+    }
+
+    if (!posFound) {
+        displayPos = displayString.size() + currentLine.size() + wordBuffer.size();
+    }
+
+    return displayPos;
+}
