@@ -15,7 +15,7 @@ SearchDialog::SearchDialog(const sf::Font& font)
 
     // Semi-transparent background overlay
     background.setSize(sf::Vector2f(10000, 10000));
-    background.setFillColor(sf::Color(0, 0, 0, 150));
+    background.setFillColor(sf::Color(0, 0, 0, 100));
 
     // Dialog box
     dialogBox.setSize(sf::Vector2f(400, 120));
@@ -54,10 +54,8 @@ SearchDialog::SearchDialog(const sf::Font& font)
 
 void SearchDialog::show() {
     isVisible = true;
-    searchQuery = "";
-    matchPositions.clear();
-    currentMatchIndex = -1;
     cursorBlinkClock.restart();
+    cursorVisible = true;
 }
 
 void SearchDialog::hide() {
@@ -191,7 +189,12 @@ void SearchDialog::update() {
 
 void SearchDialog::draw(sf::RenderWindow& window) {
     if (!isVisible) return;
-
+    sf::FloatRect textBounds = searchText.getLocalBounds();
+    sf::Vector2f textPos = searchText.getPosition();
+    cursor.setPosition(sf::Vector2f(
+        textPos.x + textBounds.size.x,
+        textPos.y - 2
+    ));
     // Draw semi-transparent background
     window.draw(background);
 
@@ -230,9 +233,9 @@ void SearchDialog::setPosition(sf::Vector2f windowSize) {
     searchText.setPosition(sf::Vector2f(dialogX + 25, dialogY + 45));
 
     // Position cursor at end of text
-    sf::FloatRect textBounds = searchText.getGlobalBounds();
+    sf::FloatRect textBounds = searchText.getLocalBounds();
     cursor.setPosition(sf::Vector2f(
-        textBounds.position.x + textBounds.size.x + 2,
+        dialogX + 25 + textBounds.size.x,
         dialogY + 43
     ));
 
