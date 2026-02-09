@@ -15,7 +15,7 @@ int main() {
     const float DRAG_THRESHOLD = 5.0f;
     const sf::Time CURSOR_BLINK_INTERVAL = sf::milliseconds(500);
 
-    sf::RenderWindow window(sf::VideoMode({800, 600}), "Text Editor");
+    sf::RenderWindow window(sf::VideoMode({800, 1000}), "Text Editor");
     std::string currentFileName = "Untitled";
     window.setTitle("Text Editor - " + currentFileName);
     sf::View uiView = window.getDefaultView();
@@ -56,21 +56,15 @@ int main() {
     };
     updateTextSizeButtonPosition();
 
-    // --- Helper function for Saving ---
-    // This centralizes logic to prevent code duplication and ensure correct behavior
     auto performSave = [&]() {
         std::string savedFile;
-
-        // If file is new/untitled, pass empty string to trigger "Save As" dialog
+        //Save as
         if (currentFileName == "Untitled") {
             savedFile = saveToFile(gapBuffer, "");
         }
-        // If file already exists, pass the name to save directly (overwrite)
         else {
             savedFile = saveToFile(gapBuffer, currentFileName);
         }
-
-        // If save was successful (filename returned), update state
         if (!savedFile.empty()) {
             currentFileName = savedFile;
             window.setTitle("Text Editor - " + currentFileName);
@@ -232,9 +226,21 @@ int main() {
                     cursorMovedThisFrame = true;
                 }
 
-                // SAVE SHORTCUT (Ctrl + S)
+
                 if (keyEvent->code == sf::Keyboard::Key::S && ctrlOrCmd) {
-                    performSave();
+                    bool shiftPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
+                                        sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift);
+
+                    if (shiftPressed) {
+                        // Force Save As regardless of current file
+                        std::string savedFile = saveToFile(gapBuffer, "");
+                        if (!savedFile.empty()) {
+                            currentFileName = savedFile;
+                            window.setTitle("Text Editor - " + currentFileName);
+                        }
+                    } else {
+                        performSave();
+                    }
                 }
 
                 if (keyEvent->code == sf::Keyboard::Key::O && ctrlOrCmd) {
