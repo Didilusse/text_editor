@@ -5,6 +5,7 @@
 #include "src/TextRenderer.h"
 #include "src/FileOperations.h"
 #include "src/InputHandler.h"
+#include "src/SearchDialog.h"
 #include <iostream>
 #include <cmath>
 
@@ -32,6 +33,7 @@ int main() {
 
     GapBuffer gapBuffer;
     Scrollbar scrollbar(SCROLL_PADDING);
+    SearchDialog searchDialog(font);
 
     Button saveBtn = createButton(font, "Save", sf::Vector2f(10, 10));
     Button loadBtn = createButton(font, "Load", sf::Vector2f(100, 10));
@@ -60,6 +62,10 @@ int main() {
     int selectionAnchor = -1;
     std::string clipboard = ""; // Internal clipboard storage
 
+    // Search highlight
+    sf::RectangleShape searchHighlight;
+    searchHighlight.setFillColor(sf::Color(255, 255, 0, 100)); // Yellow highlight
+
     while (window.isOpen()) {
         bool cursorMovedThisFrame = false;
 
@@ -80,6 +86,44 @@ int main() {
 
                 // Update text size button position to stay anchored to right
                 updateTextSizeButtonPosition();
+
+                // Update search dialog position
+                searchDialog.setPosition(newSize);
+            }
+
+            // Handle search dialog input when it's visible
+            if (searchDialog.getIsVisible()) {
+                if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
+                    if (textEvent->unicode < 128 && textEvent->unicode != '\b' &&
+                        textEvent->unicode != 127 && textEvent->unicode != 27) {
+                        searchDialog.handleTextInput(static_cast<char>(textEvent->unicode));
+                        searchDialog.updateSearch(gapBuffer.getString());
+                        cursorMovedThisFrame = true;
+                    }
+                }
+
+                if (const auto* keyEvent = event->getIf<sf::Event::KeyPressed>()) {
+                    if (keyEvent->code == sf::Keyboard::Key::Backspace) {
+                        searchDialog.handleBackspace();
+                        searchDialog.updateSearch(gapBuffer.getString());
+                    }
+                    else if (keyEvent->code == sf::Keyboard::Key::Enter) {
+                        // Treat Enter the same as F3 (next match)
+                        searchDialog.handleKeyPress(sf::Keyboard::Key::F3);
+                    }
+                    else {
+                        searchDialog.handleKeyPress(keyEvent->code);
+                    }
+
+                    // Move cursor to current match
+                    if (searchDialog.hasMatches()) {
+                        gapBuffer.moveTo(searchDialog.getCurrentMatchPosition());
+                        cursorMovedThisFrame = true;
+                    }
+                }
+
+                // Skip normal text input handling when search is open
+                continue;
             }
 
             if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
@@ -87,9 +131,9 @@ int main() {
                     textEvent->unicode != 127) {
                     // If there's a selection, delete it first before inserting
                     if (selectionAnchor != -1) {
-                        int cursor = static_cast<int>(gapBuffer.getGapStart());
-                        int start = std::min(selectionAnchor, cursor);
-                        int end = std::max(selectionAnchor, cursor);
+                        int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursorPos);
+                        int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
                         selectionAnchor = -1;
                     }
@@ -135,9 +179,9 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::Backspace) {
                     if (selectionAnchor != -1) {
                         // Delete the selection
-                        int cursor = static_cast<int>(gapBuffer.getGapStart());
-                        int start = std::min(selectionAnchor, cursor);
-                        int end = std::max(selectionAnchor, cursor);
+                        int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursorPos);
+                        int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
                         selectionAnchor = -1;
                     } else {
@@ -149,9 +193,9 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::Delete) {
                     if (selectionAnchor != -1) {
                         // Delete the selection
-                        int cursor = static_cast<int>(gapBuffer.getGapStart());
-                        int start = std::min(selectionAnchor, cursor);
-                        int end = std::max(selectionAnchor, cursor);
+                        int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursorPos);
+                        int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
                         selectionAnchor = -1;
                     } else {
@@ -181,19 +225,25 @@ int main() {
                     }
                 }
 
+                // Search
+                if (keyEvent->code == sf::Keyboard::Key::F && ctrlOrCmd) {
+                    searchDialog.show();
+                    searchDialog.setPosition(sf::Vector2f(window.getSize().x, window.getSize().y));
+                }
+
                 // Clipboard operations
                 if (keyEvent->code == sf::Keyboard::Key::A && ctrlOrCmd) {
                     // Select All
                     selectionAnchor = 0;
-                    gapBuffer.moveTo(static_cast<int>(gapBuffer.getString().length()));
+                    gapBuffer.moveTo(gapBuffer.getString().length());
                     cursorMovedThisFrame = true;
                 }
                 if (keyEvent->code == sf::Keyboard::Key::C && ctrlOrCmd) {
                     // Copy
                     if (selectionAnchor != -1) {
-                        int cursor = static_cast<int>(gapBuffer.getGapStart());
-                        int start = std::min(selectionAnchor, cursor);
-                        int end = std::max(selectionAnchor, cursor);
+                        int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursorPos);
+                        int end = std::max(selectionAnchor, cursorPos);
                         clipboard = gapBuffer.getRange(start, end);
                         sf::Clipboard::setString(clipboard); // Also set system clipboard
                     }
@@ -201,9 +251,9 @@ int main() {
                 if (keyEvent->code == sf::Keyboard::Key::X && ctrlOrCmd) {
                     // Cut
                     if (selectionAnchor != -1) {
-                        int cursor = static_cast<int>(gapBuffer.getGapStart());
-                        int start = std::min(selectionAnchor, cursor);
-                        int end = std::max(selectionAnchor, cursor);
+                        int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                        int start = std::min(selectionAnchor, cursorPos);
+                        int end = std::max(selectionAnchor, cursorPos);
                         clipboard = gapBuffer.getRange(start, end);
                         sf::Clipboard::setString(clipboard); // Also set system clipboard
                         gapBuffer.deleteRange(start, end);
@@ -222,9 +272,9 @@ int main() {
                     if (!textToPaste.empty()) {
                         // If there's a selection, delete it first
                         if (selectionAnchor != -1) {
-                            int cursor = static_cast<int>(gapBuffer.getGapStart());
-                            int start = std::min(selectionAnchor, cursor);
-                            int end = std::max(selectionAnchor, cursor);
+                            int cursorPos = static_cast<int>(gapBuffer.getGapStart());
+                            int start = std::min(selectionAnchor, cursorPos);
+                            int end = std::max(selectionAnchor, cursorPos);
                             gapBuffer.deleteRange(start, end);
                             selectionAnchor = -1;
                         }
@@ -361,6 +411,9 @@ int main() {
             verticalKeyHeld = false;
         }
 
+        // Update search dialog
+        searchDialog.update();
+
         // Cursor blinking logic
         if (cursorMovedThisFrame) {
             cursorVisible = true;
@@ -415,9 +468,10 @@ int main() {
         // Draw selection highlighting
         drawSelection(window, text, font, selectionAnchor, gapBuffer.getGapStart());
 
+
         // Draw text and cursor
         window.draw(text);
-        if (cursorVisible) {
+        if (cursorVisible && !searchDialog.getIsVisible()) {
             window.draw(cursor);
         }
 
@@ -439,6 +493,9 @@ int main() {
         window.draw(saveBtn.text);
         window.draw(loadBtn.shape);
         window.draw(loadBtn.text);
+
+        // Draw search dialog on top of everything
+        searchDialog.draw(window);
 
         window.display();
         cursorMovedThisFrame = false;
