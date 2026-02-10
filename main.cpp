@@ -17,7 +17,16 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode({800, 1000}), "Text Editor");
     std::string currentFileName = "Untitled";
-    window.setTitle("Text Editor - " + currentFileName);
+    bool unsavedChanges = false;
+
+    auto updateWindowTitle = [&]() {
+        if (unsavedChanges) {
+            window.setTitle("Text Editor - " + currentFileName + " *");
+        } else {
+            window.setTitle("Text Editor - " + currentFileName);
+        }
+    };
+    updateWindowTitle();
     sf::View uiView = window.getDefaultView();
     sf::View textView = window.getDefaultView();
     window.setFramerateLimit(60);
@@ -67,7 +76,8 @@ int main() {
         }
         if (!savedFile.empty()) {
             currentFileName = savedFile;
-            window.setTitle("Text Editor - " + currentFileName);
+            unsavedChanges = false;
+            updateWindowTitle();
         }
     };
 
@@ -152,9 +162,13 @@ int main() {
                         int start = std::min(selectionAnchor, cursorPos);
                         int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
+                        unsavedChanges = true;
+                        updateWindowTitle();
                         selectionAnchor = -1;
                     }
                     gapBuffer.insert(static_cast<char>(textEvent->unicode));
+                    unsavedChanges = true;
+                    updateWindowTitle();
                     cursorMovedThisFrame = true;
                 }
             }
@@ -200,10 +214,14 @@ int main() {
                         int start = std::min(selectionAnchor, cursorPos);
                         int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
+                        unsavedChanges = true;
+                        updateWindowTitle();
                         selectionAnchor = -1;
                     } else {
                         // Normal backspace
                         gapBuffer.backspace();
+                        unsavedChanges = true;
+                        updateWindowTitle();
                     }
                     cursorMovedThisFrame = true;
                 }
@@ -214,6 +232,8 @@ int main() {
                         int start = std::min(selectionAnchor, cursorPos);
                         int end = std::max(selectionAnchor, cursorPos);
                         gapBuffer.deleteRange(start, end);
+                        unsavedChanges = true;
+                        updateWindowTitle();
                         selectionAnchor = -1;
                     } else {
                         // Delete character at cursor position
@@ -221,6 +241,8 @@ int main() {
                         std::string currentText = gapBuffer.getString();
                         if (cursorPos < static_cast<int>(currentText.length())) {
                             gapBuffer.deleteRange(cursorPos, cursorPos + 1);
+                            unsavedChanges = true;
+                            updateWindowTitle();
                         }
                     }
                     cursorMovedThisFrame = true;
@@ -236,7 +258,8 @@ int main() {
                         std::string savedFile = saveToFile(gapBuffer, "");
                         if (!savedFile.empty()) {
                             currentFileName = savedFile;
-                            window.setTitle("Text Editor - " + currentFileName);
+                            unsavedChanges = false;
+                            updateWindowTitle();
                         }
                     } else {
                         performSave();
@@ -247,7 +270,8 @@ int main() {
                     std::string loadedFile = loadFromFile(gapBuffer);
                     if (!loadedFile.empty()) {
                         currentFileName = loadedFile;
-                        window.setTitle("Text Editor - " + currentFileName);
+                        unsavedChanges = false;
+                        updateWindowTitle();
                     }
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Equal && ctrlOrCmd) {
@@ -295,6 +319,8 @@ int main() {
                         clipboard = gapBuffer.getRange(start, end);
                         sf::Clipboard::setString(clipboard); // Also set system clipboard
                         gapBuffer.deleteRange(start, end);
+                        unsavedChanges = true;
+                        updateWindowTitle();
                         selectionAnchor = -1;
                         cursorMovedThisFrame = true;
                     }
@@ -314,9 +340,13 @@ int main() {
                             int start = std::min(selectionAnchor, cursorPos);
                             int end = std::max(selectionAnchor, cursorPos);
                             gapBuffer.deleteRange(start, end);
+                            unsavedChanges = true;
+                            updateWindowTitle();
                             selectionAnchor = -1;
                         }
                         gapBuffer.insertString(textToPaste);
+                        unsavedChanges = true;
+                        updateWindowTitle();
                         cursorMovedThisFrame = true;
                     }
                 }
@@ -349,7 +379,8 @@ int main() {
                             std::string loadedFile = loadFromFile(gapBuffer);
                             if (!loadedFile.empty()) {
                                 currentFileName = loadedFile;
-                                window.setTitle("Text Editor - " + currentFileName);
+                                unsavedChanges = false;
+                                updateWindowTitle();
                             }
                         } else {
                             // Clicking in text area
