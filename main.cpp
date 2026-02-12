@@ -19,6 +19,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({800, 1000}), "Text Editor");
     std::string currentFileName = "Untitled";
     bool unsavedChanges = false;
+    bool showCloseConfirm = false;
 
     auto updateWindowTitle = [&]() {
         if (unsavedChanges) {
@@ -98,16 +99,39 @@ int main() {
         bool cursorMovedThisFrame = false;
 
         while (const std::optional<sf::Event> event = window.pollEvent()) {
-            if (event->is<sf::Event::Closed>()) {
-                if (unsavedChanges) {
-                    //TODO: Make UI for this prompt
-                    std::cout << "You have unsaved changes. Quit anyway? (y/n): ";
-                    char response = 'n';
-                    std::cin >> response;
+            // Block input when the modal is open
+            if (showCloseConfirm) {
+                if (const auto* mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
+                    sf::Vector2f mousePos(
+                        static_cast<float>(mouseEvent->position.x),
+                        static_cast<float>(mouseEvent->position.y)
+                    );
 
-                    if (response == 'y' || response == 'Y') {
+                    sf::FloatRect yesBounds(
+                    sf::Vector2f(window.getSize().x / 2.f - 110.f,
+                    window.getSize().y / 2.f + 30.f),
+                        sf::Vector2f(80.f, 35.f)
+                    );
+
+                    sf::FloatRect noBounds(
+                    sf::Vector2f(window.getSize().x / 2.f + 30.f,
+                    window.getSize().y / 2.f + 30.f),
+                        sf::Vector2f(80.f, 35.f)
+                    );
+
+                    if (yesBounds.contains(mousePos)) {
                         window.close();
                     }
+                    if (noBounds.contains(mousePos)) {
+                        showCloseConfirm = false;
+                    }
+                }
+                continue;
+            }
+
+            if (event->is<sf::Event::Closed>()) {
+                if (unsavedChanges) {
+                    showCloseConfirm = true;
                 } else {
                     window.close();
                 }
@@ -627,6 +651,76 @@ int main() {
 
         // Draw search dialog on top of everything
         searchDialog.draw(window);
+
+        // Draw the modal panel if needed
+        if (showCloseConfirm) {
+            // Dark overlay
+            sf::RectangleShape overlay(
+                sf::Vector2f(window.getSize().x, window.getSize().y)
+            );
+            overlay.setFillColor(sf::Color(0, 0, 0, 150));
+            window.draw(overlay);
+
+            // Dialog box
+            sf::RectangleShape dialog(sf::Vector2f(360.f, 160.f));
+            dialog.setFillColor(sf::Color(40, 40, 40));
+            dialog.setOutlineThickness(2.f);
+            dialog.setOutlineColor(sf::Color::White);
+            dialog.setPosition(
+            sf::Vector2f(window.getSize().x / 2.f - 180.f,
+            window.getSize().y / 2.f - 80.f)
+            );
+            window.draw(dialog);
+
+            // Message
+            sf::Text msg(font);
+            msg.setString("You have unsaved changes.\nQuit anyway?");
+            msg.setCharacterSize(18);
+            msg.setFillColor(sf::Color::White);
+            msg.setPosition(
+            sf::Vector2f(dialog.getPosition().x + 20.f,
+            dialog.getPosition().y + 20.f)
+            );
+            window.draw(msg);
+
+            // Yes button
+            sf::RectangleShape yesBtn(sf::Vector2f(80.f, 35.f));
+            yesBtn.setFillColor(sf::Color(70, 70, 70));
+            yesBtn.setPosition(
+            sf::Vector2f(dialog.getPosition().x + 70.f,
+            dialog.getPosition().y + 100.f)
+            );
+            window.draw(yesBtn);
+
+            sf::Text yesText(font);
+            yesText.setString("Yes");
+            yesText.setCharacterSize(16);
+            yesText.setFillColor(sf::Color::White);
+            yesText.setPosition(
+            sf::Vector2f(yesBtn.getPosition().x + 25.f,
+            yesBtn.getPosition().y + 7.f)
+            );
+            window.draw(yesText);
+
+            // No button
+            sf::RectangleShape noBtn(sf::Vector2f(80.f, 35.f));
+            noBtn.setFillColor(sf::Color(70, 70, 70));
+            noBtn.setPosition(
+            sf::Vector2f(dialog.getPosition().x + 210.f,
+            dialog.getPosition().y + 100.f)
+            );
+            window.draw(noBtn);
+
+            sf::Text noText(font);
+            noText.setString("No");
+            noText.setCharacterSize(16);
+            noText.setFillColor(sf::Color::White);
+            noText.setPosition(
+            sf::Vector2f(noBtn.getPosition().x + 28.f,
+            noBtn.getPosition().y + 7.f)
+            );
+            window.draw(noText);
+        }
 
         window.display();
         cursorMovedThisFrame = false;
