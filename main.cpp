@@ -1,3 +1,4 @@
+#include <nfd.h>
 #include <SFML/Graphics.hpp>
 #include "src/GapBuffer.h"
 #include "src/UI.h"
@@ -98,7 +99,18 @@ int main() {
 
         while (const std::optional<sf::Event> event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
-                window.close();
+                if (unsavedChanges) {
+                    //TODO: Make UI for this prompt
+                    std::cout << "You have unsaved changes. Quit anyway? (y/n): ";
+                    char response = 'n';
+                    std::cin >> response;
+
+                    if (response == 'y' || response == 'Y') {
+                        window.close();
+                    }
+                } else {
+                    window.close();
+                }
             }
 
             if (const auto* resizeEvent = event->getIf<sf::Event::Resized>()) {
