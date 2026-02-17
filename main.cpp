@@ -48,8 +48,13 @@ int main() {
     Scrollbar scrollbar(SCROLL_PADDING);
     SearchDialog searchDialog(font);
 
-    Button saveBtn = createButton(font, "Save", sf::Vector2f(10, 10));
-    Button loadBtn = createButton(font, "Load", sf::Vector2f(100, 10));
+    DropdownMenu fileMenu(font, "File", sf::Vector2f(10, 10), {
+        {"New",     "Ctrl+N"},
+        {"Open",    "Ctrl+O"},
+        {"Save",    "Ctrl+S"},
+        {"Save As", ""},
+        {"Exit",    ""},
+    });
 
     // Text size button - will be positioned dynamically
     Button textSize(font);
@@ -90,6 +95,34 @@ int main() {
     sf::Vector2i mousePressPos;
     int selectionAnchor = -1;
     std::string clipboard = ""; // Internal clipboard storage
+
+    // --- File operation helpers ---
+    auto performNew = [&]() {
+        gapBuffer.clear();
+        currentFileName = "Untitled";
+        unsavedChanges = false;
+        selectionAnchor = -1;
+        scrollbar.setScrollOffset(0.f);
+        updateWindowTitle();
+    };
+
+    auto performSaveAs = [&]() {
+        std::string savedFile = saveToFile(gapBuffer, "");
+        if (!savedFile.empty()) {
+            currentFileName = savedFile;
+            unsavedChanges = false;
+            updateWindowTitle();
+        }
+    };
+
+    auto performOpen = [&]() {
+        std::string loadedFile = loadFromFile(gapBuffer);
+        if (!loadedFile.empty()) {
+            currentFileName = loadedFile;
+            unsavedChanges = false;
+            updateWindowTitle();
+        }
+    };
 
     // Search highlight
     sf::RectangleShape searchHighlight;
@@ -291,24 +324,18 @@ int main() {
 
                     if (shiftPressed) {
                         // Force Save As regardless of current file
-                        std::string savedFile = saveToFile(gapBuffer, "");
-                        if (!savedFile.empty()) {
-                            currentFileName = savedFile;
-                            unsavedChanges = false;
-                            updateWindowTitle();
-                        }
+                        performSaveAs();
                     } else {
                         performSave();
                     }
                 }
 
+                if (keyEvent->code == sf::Keyboard::Key::N && ctrlOrCmd) {
+                    performNew();
+                }
+
                 if (keyEvent->code == sf::Keyboard::Key::O && ctrlOrCmd) {
-                    std::string loadedFile = loadFromFile(gapBuffer);
-                    if (!loadedFile.empty()) {
-                        currentFileName = loadedFile;
-                        unsavedChanges = false;
-                        updateWindowTitle();
-                    }
+                    performOpen();
                 }
                 if (keyEvent->code == sf::Keyboard::Key::Equal && ctrlOrCmd) {
                     text.setCharacterSize(text.getCharacterSize() + 1);
@@ -391,6 +418,8 @@ int main() {
             if (const auto* mouseEvent = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseEvent->button == sf::Mouse::Button::Left) {
                     float windowWidth = static_cast<float>(window.getSize().x);
+                    sf::Vector2f uiPos(static_cast<float>(mouseEvent->position.x),
+                                      static_cast<float>(mouseEvent->position.y));
 
                     // Check if clicking on the scrollbar area
                     if (mouseEvent->position.x >= windowWidth - 12) {
@@ -398,37 +427,43 @@ int main() {
                         scrollbar.handleMousePress(mouseEvent->position, window.getSize(),
                                                   textBounds, TOP_MARGIN);
                         mouseState = MouseState::ScrollbarDragging;
-                    } else {
-                        // Not clicking on scrollbar
+                    }
+                    // Check if the file menu (button or open panel) was clicked
+                    else if (fileMenu.containsPoint(uiPos)) {
+                        // 0=New  1=Open  2=Save  3=Save As  4=Exit
+                        int item = fileMenu.handleClick(uiPos);
+                        if      (item == 0) { performNew(); }
+                        else if (item == 1) { performOpen(); }
+                        else if (item == 2) { performSave(); }
+                        else if (item == 3) { performSaveAs(); }
+                        else if (item == 4) {
+                            if (unsavedChanges) { showCloseConfirm = true; }
+                            else                { window.close(); }
+                        }
+                    }
+                    // Close an open dropdown when clicking anywhere else
+                    else {
+                        if (fileMenu.isOpen()) {
+                            fileMenu.close();
+                        }
+
                         mouseState = MouseState::Pressed;
                         mousePressPos = mouseEvent->position;
 
-                        // Check if clicking on buttons
-                        sf::Vector2f uiPos(static_cast<float>(mouseEvent->position.x),
-                                         static_cast<float>(mouseEvent->position.y));
-
-                        // SAVE BUTTON CLICK
-                        if (saveBtn.shape.getGlobalBounds().contains(uiPos)) {
-                            performSave();
-                        }
-                        else if (loadBtn.shape.getGlobalBounds().contains(uiPos)) {
-                            std::string loadedFile = loadFromFile(gapBuffer);
-                            if (!loadedFile.empty()) {
-                                currentFileName = loadedFile;
-                                unsavedChanges = false;
-                                updateWindowTitle();
-                            }
-                        } else {
-                            // Clicking in text area
-                            handleMouseClick(mouseEvent->position, gapBuffer, text,
-                                           saveBtn, loadBtn, window, textView);
-                            selectionAnchor = gapBuffer.getGapStart();
-                        }
+                        // Clicking in text area
+                        handleMouseClick(sf::Vector2i(mouseEvent->position.x,mouseEvent->position.y), gapBuffer, text,
+                                         window, textView);
+                        selectionAnchor = gapBuffer.getGapStart();
                     }
                 }
             }
 
             if (const auto* moveEvent = event->getIf<sf::Event::MouseMoved>()) {
+                // Always update dropdown hover state
+                fileMenu.handleHover(sf::Vector2f(
+                    static_cast<float>(moveEvent->position.x),
+                    static_cast<float>(moveEvent->position.y)));
+
                 if (mouseState == MouseState::ScrollbarDragging) {
                     sf::FloatRect textBounds = text.getGlobalBounds();
                     scrollbar.handleMouseMove(moveEvent->position, window.getSize(), textBounds);
@@ -644,10 +679,9 @@ int main() {
         // Draw UI buttons
         window.draw(textSize.shape);
         window.draw(textSize.text);
-        window.draw(saveBtn.shape);
-        window.draw(saveBtn.text);
-        window.draw(loadBtn.shape);
-        window.draw(loadBtn.text);
+
+        // Draw file dropdown menu (drawn last so it appears on top of the header)
+        fileMenu.draw(window);
 
         // Draw search dialog on top of everything
         searchDialog.draw(window);
