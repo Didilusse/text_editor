@@ -14,5 +14,4 @@ enum class MouseState {
 };
 
 void handleMouseClick(sf::Vector2i mousePos, GapBuffer& buffer, const sf::Text& text,
-                      const Button& saveBtn, const Button& loadBtn,
                       const sf::RenderWindow& window, const sf::View& textView);
