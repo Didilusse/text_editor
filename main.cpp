@@ -56,6 +56,22 @@ int main() {
         {"Exit",    ""},
     });
 
+    // Search button (next to the File dropdown)
+    Button searchBtn(font);
+    searchBtn.shape.setSize(sf::Vector2f(80.f, 30.f));
+    searchBtn.shape.setFillColor(sf::Color(50, 50, 50));
+    searchBtn.shape.setPosition(sf::Vector2f(75.f, 10.f));
+    searchBtn.text.setString("Search");
+    searchBtn.text.setCharacterSize(15);
+    searchBtn.text.setFillColor(sf::Color::White);
+    {
+        sf::FloatRect tb = searchBtn.text.getLocalBounds();
+        searchBtn.text.setPosition(sf::Vector2f(
+            75.f + (80.f - tb.size.x) / 2.f - tb.position.x,
+            10.f + (30.f - tb.size.y) / 2.f - tb.position.y
+        ));
+    }
+
     // Text size button - will be positioned dynamically
     Button textSize(font);
     textSize.shape.setSize(sf::Vector2f(140, 30));
@@ -428,6 +444,12 @@ int main() {
                                                   textBounds, TOP_MARGIN);
                         mouseState = MouseState::ScrollbarDragging;
                     }
+                    // Check if the search button was clicked
+                    else if (searchBtn.shape.getGlobalBounds().contains(uiPos)) {
+                        searchDialog.show();
+                        searchDialog.setPosition(sf::Vector2f(window.getSize().x, window.getSize().y));
+                        searchDialog.updateSearch(gapBuffer.getString());
+                    }
                     // Check if the file menu (button or open panel) was clicked
                     else if (fileMenu.containsPoint(uiPos)) {
                         // 0=New  1=Open  2=Save  3=Save As  4=Exit
@@ -463,6 +485,14 @@ int main() {
                 fileMenu.handleHover(sf::Vector2f(
                     static_cast<float>(moveEvent->position.x),
                     static_cast<float>(moveEvent->position.y)));
+
+                // Hover tint for search button
+                sf::Vector2f mp(static_cast<float>(moveEvent->position.x),
+                                static_cast<float>(moveEvent->position.y));
+                searchBtn.shape.setFillColor(
+                    searchBtn.shape.getGlobalBounds().contains(mp)
+                        ? sf::Color(70, 70, 70)
+                        : sf::Color(50, 50, 50));
 
                 if (mouseState == MouseState::ScrollbarDragging) {
                     sf::FloatRect textBounds = text.getGlobalBounds();
@@ -682,6 +712,10 @@ int main() {
 
         // Draw file dropdown menu (drawn last so it appears on top of the header)
         fileMenu.draw(window);
+
+        // Draw search button
+        window.draw(searchBtn.shape);
+        window.draw(searchBtn.text);
 
         // Draw search dialog on top of everything
         searchDialog.draw(window);
