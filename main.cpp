@@ -36,6 +36,9 @@ int main() {
     sf::Font font;
     if (!font.openFromFile("fonts/Roboto.ttf")) return 1;
 
+    // ── Theme ────────────────────────────────────────────────────────────────
+    Theme theme;  // starts dark
+
     sf::Text text(font);
     text.setCharacterSize(24);
     text.setFillColor(sf::Color::White);
@@ -72,8 +75,51 @@ int main() {
         ));
     }
 
-    // Text size button - will be positioned dynamically
+    // Theme toggle button
+    Button themeToggle(font);
+    themeToggle.shape.setSize(sf::Vector2f(90.f, 30.f));
+    themeToggle.shape.setFillColor(sf::Color(50, 50, 50));
+    themeToggle.shape.setPosition(sf::Vector2f(160.f, 10.f));
+    themeToggle.text.setString("Light");
+    themeToggle.text.setCharacterSize(15);
+    themeToggle.text.setFillColor(sf::Color::White);
+    {
+        sf::FloatRect tb = themeToggle.text.getLocalBounds();
+        themeToggle.text.setPosition(sf::Vector2f(
+            160.f + (90.f - tb.size.x) / 2.f - tb.position.x,
+            10.f + (30.f - tb.size.y) / 2.f - tb.position.y
+        ));
+    }
+
+    // applyTheme must be defined after text, cursor, fileMenu, scrollbar are all declared
+    auto applyTheme = [&]() {
+        text.setFillColor(theme.textColor());
+        cursor.setFillColor(theme.cursorColor());
+        fileMenu.applyTheme(theme);
+        scrollbar.applyTheme(theme.isDark);
+    };
+
+    auto updateThemeToggleAppearance = [&]() {
+        themeToggle.text.setString(theme.isDark ? "Light" : "Dark");
+        themeToggle.shape.setFillColor(theme.btnNormal());
+        themeToggle.text.setFillColor(theme.textColor());
+        // Re-center text after string change
+        sf::FloatRect tb = themeToggle.text.getLocalBounds();
+        themeToggle.text.setPosition(sf::Vector2f(
+            160.f + (90.f - tb.size.x) / 2.f - tb.position.x,
+            10.f + (30.f - tb.size.y) / 2.f - tb.position.y
+        ));
+    };
+    updateThemeToggleAppearance();
+
+    // Apply initial theme
+    applyTheme();
+    // Sync button colors with initial theme
+    searchBtn.shape.setFillColor(theme.btnNormal());
+    searchBtn.text.setFillColor(theme.textColor());
     Button textSize(font);
+    textSize.shape.setFillColor(theme.btnNormal());
+    textSize.text.setFillColor(theme.textColor());
     textSize.shape.setSize(sf::Vector2f(140, 30));
     textSize.shape.setFillColor(sf::Color(50, 50, 50));
     textSize.text.setFont(font);
@@ -444,6 +490,17 @@ int main() {
                                                   textBounds, TOP_MARGIN);
                         mouseState = MouseState::ScrollbarDragging;
                     }
+                    // Check if theme toggle was clicked
+                    else if (themeToggle.shape.getGlobalBounds().contains(uiPos)) {
+                        theme.isDark = !theme.isDark;
+                        applyTheme();
+                        updateThemeToggleAppearance();
+                        // Update search/text buttons too
+                        searchBtn.shape.setFillColor(theme.btnNormal());
+                        searchBtn.text.setFillColor(theme.textColor());
+                        textSize.shape.setFillColor(theme.btnNormal());
+                        textSize.text.setFillColor(theme.textColor());
+                    }
                     // Check if the search button was clicked
                     else if (searchBtn.shape.getGlobalBounds().contains(uiPos)) {
                         searchDialog.show();
@@ -491,8 +548,13 @@ int main() {
                                 static_cast<float>(moveEvent->position.y));
                 searchBtn.shape.setFillColor(
                     searchBtn.shape.getGlobalBounds().contains(mp)
-                        ? sf::Color(70, 70, 70)
-                        : sf::Color(50, 50, 50));
+                        ? theme.btnHover()
+                        : theme.btnNormal());
+                searchBtn.text.setFillColor(theme.textColor());
+                themeToggle.shape.setFillColor(
+                    themeToggle.shape.getGlobalBounds().contains(mp)
+                        ? theme.btnHover()
+                        : theme.btnNormal());
 
                 if (mouseState == MouseState::ScrollbarDragging) {
                     sf::FloatRect textBounds = text.getGlobalBounds();
@@ -647,7 +709,7 @@ int main() {
 
         // Update UI
         textSize.text.setString("Font Size: " + std::to_string(text.getCharacterSize()));
-        window.clear(sf::Color::Black);
+        window.clear(theme.windowBg());
 
         // Set text view with scroll offset
         textView.setCenter(
@@ -703,7 +765,7 @@ int main() {
 
         // Draw header background
         sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
-        headerBg.setFillColor(sf::Color(30, 30, 30));
+        headerBg.setFillColor(theme.headerBg());
         window.draw(headerBg);
 
         // Draw UI buttons
@@ -716,6 +778,10 @@ int main() {
         // Draw search button
         window.draw(searchBtn.shape);
         window.draw(searchBtn.text);
+
+        // Draw theme toggle button
+        window.draw(themeToggle.shape);
+        window.draw(themeToggle.text);
 
         // Draw search dialog on top of everything
         searchDialog.draw(window);
@@ -731,9 +797,9 @@ int main() {
 
             // Dialog box
             sf::RectangleShape dialog(sf::Vector2f(360.f, 160.f));
-            dialog.setFillColor(sf::Color(40, 40, 40));
+            dialog.setFillColor(theme.panelBg());
             dialog.setOutlineThickness(2.f);
-            dialog.setOutlineColor(sf::Color::White);
+            dialog.setOutlineColor(theme.textColor());
             dialog.setPosition(
             sf::Vector2f(window.getSize().x / 2.f - 180.f,
             window.getSize().y / 2.f - 80.f)
@@ -744,7 +810,7 @@ int main() {
             sf::Text msg(font);
             msg.setString("You have unsaved changes.\nQuit anyway?");
             msg.setCharacterSize(18);
-            msg.setFillColor(sf::Color::White);
+            msg.setFillColor(theme.textColor());
             msg.setPosition(
             sf::Vector2f(dialog.getPosition().x + 20.f,
             dialog.getPosition().y + 20.f)
@@ -753,7 +819,7 @@ int main() {
 
             // Yes button
             sf::RectangleShape yesBtn(sf::Vector2f(80.f, 35.f));
-            yesBtn.setFillColor(sf::Color(70, 70, 70));
+            yesBtn.setFillColor(theme.btnNormal());
             yesBtn.setPosition(
             sf::Vector2f(dialog.getPosition().x + 70.f,
             dialog.getPosition().y + 100.f)
@@ -763,7 +829,7 @@ int main() {
             sf::Text yesText(font);
             yesText.setString("Yes");
             yesText.setCharacterSize(16);
-            yesText.setFillColor(sf::Color::White);
+            yesText.setFillColor(theme.textColor());
             yesText.setPosition(
             sf::Vector2f(yesBtn.getPosition().x + 25.f,
             yesBtn.getPosition().y + 7.f)
@@ -772,7 +838,7 @@ int main() {
 
             // No button
             sf::RectangleShape noBtn(sf::Vector2f(80.f, 35.f));
-            noBtn.setFillColor(sf::Color(70, 70, 70));
+            noBtn.setFillColor(theme.btnNormal());
             noBtn.setPosition(
             sf::Vector2f(dialog.getPosition().x + 210.f,
             dialog.getPosition().y + 100.f)
@@ -782,7 +848,7 @@ int main() {
             sf::Text noText(font);
             noText.setString("No");
             noText.setCharacterSize(16);
-            noText.setFillColor(sf::Color::White);
+            noText.setFillColor(theme.textColor());
             noText.setPosition(
             sf::Vector2f(noBtn.getPosition().x + 28.f,
             noBtn.getPosition().y + 7.f)

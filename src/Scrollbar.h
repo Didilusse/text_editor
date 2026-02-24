@@ -13,7 +13,8 @@ public:
     void handleMouseRelease();
     
     void draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, float topMargin);
-    
+    void applyTheme(bool isDark);
+
     // Getters and Setters
     float getScrollOffset() const;
     void setScrollOffset(float offset);
@@ -24,4 +25,5 @@ private:
     float padding;
     bool isDragging;
     sf::Vector2i mousePressPos;
+    bool darkTheme = true;
 };

@@ -82,7 +82,7 @@ void Scrollbar::draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, 
     
     // Draw Track
     sf::RectangleShape scrollTrack({12.f, windowH});
-    scrollTrack.setFillColor(sf::Color(40, 40, 40));
+    scrollTrack.setFillColor(darkTheme ? sf::Color(40, 40, 40) : sf::Color(210, 210, 210));
     scrollTrack.setPosition(sf::Vector2f(windowW - 12.f, 0.f));
     window.draw(scrollTrack);
 
@@ -98,9 +98,9 @@ void Scrollbar::draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, 
         float thumbY = ratio * (windowH - thumbHeight);
 
         sf::RectangleShape scrollThumb({10.f, thumbHeight});
-        scrollThumb.setFillColor(sf::Color(150, 150, 150));
+        scrollThumb.setFillColor(darkTheme ? sf::Color(150, 150, 150) : sf::Color(120, 120, 120));
         scrollThumb.setPosition(sf::Vector2f(windowW - 11.f, thumbY));
-        scrollThumb.setOutlineColor(sf::Color(80, 80, 80));
+        scrollThumb.setOutlineColor(darkTheme ? sf::Color(80, 80, 80) : sf::Color(160, 160, 160));
         scrollThumb.setOutlineThickness(1.f);
         window.draw(scrollThumb);
     }
@@ -108,3 +108,4 @@ void Scrollbar::draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, 
 
 float Scrollbar::getScrollOffset() const { return scrollOffset; }
 void Scrollbar::setScrollOffset(float offset) { scrollOffset = offset; }
+void Scrollbar::applyTheme(bool isDark) { darkTheme = isDark; }
