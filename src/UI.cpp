@@ -175,6 +175,18 @@ int DropdownMenu::handleClick(sf::Vector2f mousePos) {
     return -1;
 }
 
+void DropdownMenu::applyTheme(const Theme& theme) {
+    menuBtn.setFillColor(theme.btnNormal());
+    menuBtnText.setFillColor(theme.textColor());
+    panel.setFillColor(theme.panelBg());
+    panel.setOutlineColor(theme.panelOut());
+    for (size_t i = 0; i < rows.size(); ++i) {
+        rows[i].highlight.setFillColor(theme.rowHighlight());
+        rows[i].labelText.setFillColor(theme.textColor());
+        rows[i].shortcutText.setFillColor(theme.dimText());
+    }
+}
+
 void DropdownMenu::draw(sf::RenderWindow& window) const {
     window.draw(menuBtn);
     window.draw(menuBtnText);
