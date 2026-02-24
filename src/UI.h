@@ -4,6 +4,33 @@
 #include <vector>
 #include <functional>
 
+struct Theme {
+    bool isDark = true;
+
+    // Background
+    sf::Color windowBg()   const { return isDark ? sf::Color(0,0,0)       : sf::Color(255,255,255); }
+    sf::Color headerBg()   const { return isDark ? sf::Color(30,30,30)    : sf::Color(220,220,220); }
+
+    // Buttons / panels
+    sf::Color btnNormal()  const { return isDark ? sf::Color(50,50,50)    : sf::Color(180,180,180); }
+    sf::Color btnHover()   const { return isDark ? sf::Color(70,70,70)    : sf::Color(160,160,160); }
+    sf::Color panelBg()    const { return isDark ? sf::Color(35,35,35)    : sf::Color(230,230,230); }
+    sf::Color panelOut()   const { return isDark ? sf::Color(80,80,80)    : sf::Color(150,150,150); }
+    sf::Color rowHighlight()const{ return isDark ? sf::Color(70,70,70)    : sf::Color(190,190,190); }
+
+    // Text
+    sf::Color textColor()  const { return isDark ? sf::Color::White        : sf::Color::Black; }
+    sf::Color dimText()    const { return isDark ? sf::Color(160,160,160)  : sf::Color(80,80,80); }
+
+    // Cursor & selection
+    sf::Color cursorColor()const { return isDark ? sf::Color::White        : sf::Color::Black; }
+    sf::Color selectionColor()const{ return isDark ? sf::Color(100,149,237,150) : sf::Color(100,149,237,120); }
+
+    // Scrollbar
+    sf::Color scrollbarTrack() const { return isDark ? sf::Color(30,30,30)  : sf::Color(210,210,210); }
+    sf::Color scrollbarThumb() const { return isDark ? sf::Color(80,80,80)  : sf::Color(140,140,140); }
+};
+
 struct Button {
     sf::RectangleShape shape;
     sf::Text text;
@@ -39,6 +66,7 @@ public:
     // Returns true if mousePos is within the menu button OR the open dropdown panel
     bool containsPoint(sf::Vector2f mousePos) const;
 
+    void applyTheme(const Theme& theme);
     void draw(sf::RenderWindow& window) const;
 
 private:
