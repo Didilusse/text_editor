@@ -7,6 +7,7 @@
 #include "src/FileOperations.h"
 #include "src/InputHandler.h"
 #include "src/SearchDialog.h"
+#include "src/StatusBar.h"
 #include <iostream>
 #include <cmath>
 
@@ -50,6 +51,7 @@ int main() {
     GapBuffer gapBuffer;
     Scrollbar scrollbar(SCROLL_PADDING);
     SearchDialog searchDialog(font);
+    StatusBar statusBar(font, static_cast<float>(window.getSize().x));
 
     DropdownMenu fileMenu(font, "File", sf::Vector2f(10, 10), {
         {"New",     "Ctrl+N"},
@@ -244,6 +246,9 @@ int main() {
 
                 // Update text size button position to stay anchored to right
                 updateTextSizeButtonPosition();
+
+                // Update status bar width
+                statusBar.setWidth(newSize.x);
 
                 // Update search dialog position
                 searchDialog.setPosition(newSize);
@@ -708,7 +713,7 @@ int main() {
         scrollbar.clampScroll(window.getSize(), textBounds);
 
         // Update UI
-        textSize.text.setString("Font Size: " + std::to_string(text.getCharacterSize()));
+        statusBar.update(gapBuffer, unsavedChanges, selectionAnchor, text.getCharacterSize());
         window.clear(theme.windowBg());
 
         // Set text view with scroll offset
@@ -767,10 +772,6 @@ int main() {
         sf::RectangleShape headerBg(sf::Vector2f(static_cast<float>(window.getSize().x), TOP_MARGIN));
         headerBg.setFillColor(theme.headerBg());
         window.draw(headerBg);
-
-        // Draw UI buttons
-        window.draw(textSize.shape);
-        window.draw(textSize.text);
 
         // Draw file dropdown menu (drawn last so it appears on top of the header)
         fileMenu.draw(window);
@@ -855,6 +856,9 @@ int main() {
             );
             window.draw(noText);
         }
+
+        // Draw status bar at the bottom
+        statusBar.draw(window, theme);
 
         window.display();
         cursorMovedThisFrame = false;

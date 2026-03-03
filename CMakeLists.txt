@@ -22,6 +22,8 @@ add_executable(text_editor
         src/InputHandler.h
         src/SearchDialog.cpp
         src/SearchDialog.h
+        src/StatusBar.cpp
+        src/StatusBar.h
 )
 
 target_include_directories(text_editor PRIVATE
