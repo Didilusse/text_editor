@@ -7,13 +7,13 @@
 #include <iomanip>
 
 StatusBar::StatusBar(const sf::Font& font, float windowWidth)
-    : width(windowWidth),
-      lineColText(font),
+    : lineColText(font),
       charCountText(font),
       wordCountText(font),
       fileSizeText(font),
       modifiedIndicator(font),
-      fontSizeText(font) {
+      fontSizeText(font),
+      width(windowWidth) {
     
     // Background - positioned at bottom will be done in draw()
     background.setSize(sf::Vector2f(width, HEIGHT));
@@ -42,7 +42,7 @@ StatusBar::StatusBar(const sf::Font& font, float windowWidth)
 }
 
 StatusMetrics StatusBar::calculateMetrics(const GapBuffer& buffer, bool unsavedChanges,
-                                          int selectionAnchor, unsigned int fontSize) {
+                                          int /*selectionAnchor*/, unsigned int fontSize) {
     std::string content = buffer.getString();
     size_t cursorPos = buffer.getGapStart();
     
