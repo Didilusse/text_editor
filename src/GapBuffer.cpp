@@ -58,7 +58,7 @@ size_t GapBuffer::getGapEnd() const {
 }
 std::string GapBuffer::getString() const {
     std::string word;
-    for (int i = 0; i < buffer.size() - (getGapEnd() - getGapStart()); i++) {
+    for (size_t i = 0; i < buffer.size() - (getGapEnd() - getGapStart()); i++) {
         word += getChar(i);
     }
     return word;
