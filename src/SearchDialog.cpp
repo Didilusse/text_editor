@@ -10,8 +10,8 @@ SearchDialog::SearchDialog(const sf::Font& font)
       searchText(font),
       resultText(font),
       isVisible(false),
-      currentMatchIndex(-1),
-      cursorVisible(true) {
+      cursorVisible(true),
+      currentMatchIndex(-1) {
 
     // Semi-transparent background overlay
     background.setSize(sf::Vector2f(10000, 10000));
