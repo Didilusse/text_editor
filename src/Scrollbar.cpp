@@ -4,7 +4,7 @@ Scrollbar::Scrollbar(float padding)
     : scrollOffset(0.f), padding(padding), isDragging(false) {}
 
 void Scrollbar::handleMousePress(sf::Vector2i mousePos, sf::Vector2u windowSize, 
-                                 const sf::FloatRect& textBounds, float topMargin) {
+                                 const sf::FloatRect& textBounds, float /*topMargin*/) {
     float windowH = static_cast<float>(windowSize.y);
     float totalContentHeight = std::max(windowH, textBounds.position.y + textBounds.size.y + padding);
     float maxScroll = std::max(0.f, totalContentHeight - windowH);
@@ -76,7 +76,7 @@ void Scrollbar::clampScroll(sf::Vector2u windowSize, const sf::FloatRect& textBo
     scrollOffset = std::clamp(scrollOffset, 0.f, maxScroll);
 }
 
-void Scrollbar::draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, float topMargin) {
+void Scrollbar::draw(sf::RenderWindow& window, const sf::FloatRect& textBounds, float /*topMargin*/) {
     float windowW = static_cast<float>(window.getSize().x);
     float windowH = static_cast<float>(window.getSize().y);
     
