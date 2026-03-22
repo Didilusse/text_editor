@@ -5,6 +5,7 @@
  */
 
 #include <AppKit/AppKit.h>
+#include <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include "nfd.h"
 #include "nfd_common.h"
 
@@ -53,7 +54,15 @@ static void AddFilterListToDialog( NSSavePanel *dialog, const char *filterList )
     NSArray *allowedFileTypes = BuildAllowedFileTypes( filterList );
     if ( [allowedFileTypes count] != 0 )
     {
-        [dialog setAllowedFileTypes:allowedFileTypes];
+        NSMutableArray<UTType *> *contentTypes = [[NSMutableArray alloc] init];
+        for ( NSString *ext in allowedFileTypes )
+        {
+            UTType *type = [UTType typeWithFilenameExtension:ext];
+            if ( type != nil )
+                [contentTypes addObject:type];
+        }
+        [dialog setAllowedContentTypes:contentTypes];
+        [contentTypes release];
     }
 }
 

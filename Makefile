@@ -24,7 +24,7 @@ ifeq ($(SFML_LIBS),)
 endif
 
 # macOS frameworks
-FRAMEWORKS = -framework Cocoa
+FRAMEWORKS = -framework Cocoa -framework UniformTypeIdentifiers
 
 # Source files
 CXX_SOURCES = main.cpp \
